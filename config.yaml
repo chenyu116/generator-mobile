@@ -1,0 +1,4 @@
+baseServer:
+  hostPort: ":5021"
+apiServer:
+  hostPort: ":5022"
