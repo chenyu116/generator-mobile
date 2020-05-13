@@ -1,19 +1,25 @@
 package server
 
 import (
-	"fmt"
+	"github.com/chenyu116/generator-mobile/config"
+	"github.com/chenyu116/generator-mobile/logger"
+	"github.com/chenyu116/generator-mobile/utils"
+	"github.com/chenyu116/log"
+	"github.com/gin-gonic/gin"
 	"net"
 	"net/http"
 	"sync"
-
-	"github.com/chenyu116/generator-mobile/config"
-	"github.com/chenyu116/generator-mobile/logger"
-	"go.uber.org/zap"
 )
 
 // Server Server
 type Server struct {
 	waitGroup *sync.WaitGroup
+}
+
+func NotFound(c *gin.Context) {
+	log.Errorf("NotFound %s", c.Request.URL.Path)
+	c.AbortWithStatus(http.StatusNotFound)
+	return
 }
 
 // NewServer NewServer
@@ -26,21 +32,31 @@ func NewServer() *Server {
 
 // Start Start server
 func (s *Server) Start() {
-	fileService := http.FileServer(http.Dir("./dist"))
-	mux := http.NewServeMux()
-	mux.Handle("/", fileService)
-
+	utils.InitPool()
 	logger.InitLogger(true, "debug")
 	cf := config.GetConfig()
-
-
-	_, err := net.Listen("tcp", cf.Websocket.HostPort)
+	providerListener, err := net.Listen("tcp", cf.Serve.HostPort)
 	if err != nil {
-		logger.ZapLogger.Fatal("tcp.Listen", zap.Error(err))
+		log.Fatal(err.Error())
 	}
 
-	logger.ZapLogger.Debug("Websocket Serving", zap.String("hostPort", cf.Websocket.HostPort), zap.Bool("TLS",
-		cf.Websocket.Tls.Enable))
+	gin.SetMode(gin.ReleaseMode)
+	r := gin.New()
+	r.Use(gin.Recovery())
+	r.Use(gin.Logger())
 
-	fmt.Println("OK")
+	r.NoMethod(NotFound)
+	r.NoRoute(NotFound)
+
+	v1 := r.Group("/v1")
+
+	v1.GET("/projects", projects)
+	v1.GET("/project/featured", projectFeatured)
+
+	log.Infof("Server Started! Addr: \"%s\"", cf.Serve.HostPort)
+
+	err = http.Serve(providerListener, r)
+	if err != nil {
+		log.Fatal("Server Start err:%s", err.Error())
+	}
 }

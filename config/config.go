@@ -1,9 +1,8 @@
 package config
 
 import (
-	"github.com/chenyu116/generator-mobile/logger"
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
+	"log"
 )
 
 var c Config
@@ -17,14 +16,6 @@ func init() {
 
 func GetConfig() Config {
 	return c
-}
-
-func GetRabbitmqConfig() RabbitmqConfig {
-	return c.Rabbitmq
-}
-
-func GetCommonConfig() CommonConfig {
-	return c.Common
 }
 
 func Get(key string) interface{} {
@@ -63,41 +54,22 @@ func Set(key string, value interface{}) {
 	viper.Set(key, value)
 }
 
-type WebsocketConfig struct {
-	HostPort string       `mapstructure:"hostPort"`
-	Tls      websocketTls `mapstructure:"tls"`
-}
-type websocketTls struct {
-	Enable bool   `mapstructure:"enable"`
-	Cert   string `mapstructure:"cert"`
-	Key    string `mapstructure:"key"`
-}
-
-type ApiConfig struct {
+type ServeConfig struct {
 	HostPort string `mapstructure:"hostPort"`
 }
 
 type CommonConfig struct {
-	ConnectTimeout uint32   `mapstructure:"connectTimeout"`
-	Version        string   `mapstructure:"version"`
-	AllowHosts     []string `mapstructure:"allowHosts"`
-	AllowOrigin    []string `mapstructure:"allowOrigin"`
+	StaticPath       string `mapstructure:"staticPath"`
 }
 
-type RabbitmqConfig struct {
-	HostPort    string              `mapstructure:"hostPort"`
-	Username    string              `mapstructure:"username"`
-	Password    string              `mapstructure:"password"`
-	Prefetch    int                 `mapstructure:"prefetch"`
-	VHost       string              `mapstructure:"vHost"`
-	Exchanges   []map[string]string `mapstructure:"exchanges"`
-	QueuePrefix string              `mapstructure:"queuePrefix"`
+type DBConfig struct {
+	HostPort string `mapstructure:"hostPort"`
 }
+
 type Config struct {
-	Websocket WebsocketConfig `mapstructure:"websocket"`
-	ApiServer ApiConfig       `mapstructure:"apiServer"`
-	Common    CommonConfig    `mapstructure:"common"`
-	Rabbitmq  RabbitmqConfig  `mapstructure:"rabbitmq"`
+	Serve    ServeConfig  `mapstructure:"serve"`
+	DbServer DBConfig     `mapstructure:"dbServer"`
+	Common   CommonConfig `mapstructure:"common"`
 }
 
 func SetConfigPath(path string) {
@@ -108,11 +80,12 @@ func ReadConfig() {
 	err := viper.ReadInConfig()
 
 	if err != nil {
-		logger.ZapLogger.Fatal("viper.ReadInConfig", zap.Error(err))
+		log.Fatal(err.Error())
 	}
+
 	err = viper.Unmarshal(&c)
 
 	if err != nil {
-		logger.ZapLogger.Fatal("viper.Unmarshal", zap.Error(err))
+		log.Fatal(err)
 	}
 }
