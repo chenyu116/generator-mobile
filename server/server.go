@@ -52,6 +52,7 @@ func (s *Server) Start() {
 
 	v1.GET("/projects", projects)
 	v1.GET("/project/featured", projectFeatured)
+	v1.GET("/project/features", projectFeatures)
 
 	log.Infof("Server Started! Addr: \"%s\"", cf.Serve.HostPort)
 
