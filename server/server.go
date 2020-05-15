@@ -51,8 +51,10 @@ func (s *Server) Start() {
 	v1 := r.Group("/v1")
 
 	v1.GET("/projects", projects)
-	v1.GET("/project/featured", projectFeatured)
+	v1.GET("/project/initialized", projectInitialized)
 	v1.GET("/project/features", projectFeatures)
+	v1.GET("/project/init", projectInit)
+	v1.GET("/features", features)
 
 	log.Infof("Server Started! Addr: \"%s\"", cf.Serve.HostPort)
 

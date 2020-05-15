@@ -2,16 +2,28 @@ package server
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	pb "github.com/chenyu116/generator-mobile/proto"
 	"github.com/chenyu116/generator-mobile/utils"
 	"github.com/gin-gonic/gin"
 	"google.golang.org/grpc"
+	"io/ioutil"
 	"net/http"
+	"os"
+	"os/exec"
+	"strconv"
+	"strings"
 )
 
-func jsonError(err string) gin.H {
-	return gin.H{"error": errors.New(err)}
+type result struct {
+	Error  string `json:"error,omitempty"`
+	Result string `json:"result,omitempty"`
+}
+
+func jsonError(err string) result {
+	return result{
+		Error: err,
+	}
 }
 
 func projects(c *gin.Context) {
@@ -22,7 +34,7 @@ func projects(c *gin.Context) {
 	}
 	defer utils.DbServerGrpcConn.Put(dbServerConn)
 	client := pb.NewApiClient(dbServerConn)
-	reply, err := client.GeneratorProjects(context.Background(), &pb.GeneratorProjectsRequest{
+	reply, err := client.Projects(context.Background(), &pb.ProjectsRequest{
 	})
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
@@ -31,7 +43,19 @@ func projects(c *gin.Context) {
 	c.AbortWithStatusJSON(http.StatusOK, reply.Projects)
 }
 
-func projectFeatured(c *gin.Context) {
+func projectInitialized(c *gin.Context) {
+
+	dirs, _ := ioutil.ReadDir("./projects")
+	fmt.Println(dirs)
+	var projects []string
+	for _, fi := range dirs {
+		projects = append(projects, "'"+fi.Name()+"'")
+	}
+	if len(projects) == 0 {
+		c.AbortWithStatusJSON(http.StatusOK, projects)
+		return
+	}
+
 	dbServerConn, ok := utils.DbServerGrpcConn.Get().(*grpc.ClientConn)
 	if !ok {
 		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError("GRPC connection lost"))
@@ -39,7 +63,8 @@ func projectFeatured(c *gin.Context) {
 	}
 	defer utils.DbServerGrpcConn.Put(dbServerConn)
 	client := pb.NewApiClient(dbServerConn)
-	reply, err := client.GeneratorProjectFeatured(context.Background(), &pb.GeneratorProjectFeaturedRequest{
+	reply, err := client.ProjectInitialized(context.Background(), &pb.ProjectInitializedRequest{
+		Projects: strings.Join(projects, ","),
 	})
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
@@ -48,8 +73,25 @@ func projectFeatured(c *gin.Context) {
 	c.AbortWithStatusJSON(http.StatusOK, reply.Projects)
 }
 
+func features(c *gin.Context) {
+	dbServerConn, ok := utils.DbServerGrpcConn.Get().(*grpc.ClientConn)
+	if !ok {
+		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError("GRPC connection lost"))
+		return
+	}
+	defer utils.DbServerGrpcConn.Put(dbServerConn)
+	client := pb.NewApiClient(dbServerConn)
+	reply, err := client.Features(context.Background(), &pb.FeaturesRequest{
+	})
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+		return
+	}
+	c.AbortWithStatusJSON(http.StatusOK, reply.Feature)
+}
+
 func projectFeatures(c *gin.Context) {
-	var req RequestProjectId
+	var req RequestInt32ProjectId
 	if err := c.ShouldBindQuery(&req); err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
 		return
@@ -58,6 +100,13 @@ func projectFeatures(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError("miss project_id"))
 		return
 	}
+	projectId := strconv.Itoa(int(req.ProjectId))
+	baseDir := "./projects/" + projectId
+
+	if _, err := os.Stat(baseDir); os.IsNotExist(err) {
+		c.AbortWithStatusJSON(http.StatusNotAcceptable, jsonError("需要初始化项目"))
+		return
+	}
 	dbServerConn, ok := utils.DbServerGrpcConn.Get().(*grpc.ClientConn)
 	if !ok {
 		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError("GRPC connection lost"))
@@ -65,7 +114,7 @@ func projectFeatures(c *gin.Context) {
 	}
 	defer utils.DbServerGrpcConn.Put(dbServerConn)
 	client := pb.NewApiClient(dbServerConn)
-	reply, err := client.GeneratorProjectFeaturesByProjectId(context.Background(), &pb.GeneratorProjectFeaturesByProjectIdRequest{
+	reply, err := client.ProjectFeaturesByProjectId(context.Background(), &pb.ProjectFeaturesByProjectIdRequest{
 		ProjectId: req.ProjectId,
 	})
 	if err != nil {
@@ -73,4 +122,70 @@ func projectFeatures(c *gin.Context) {
 		return
 	}
 	c.AbortWithStatusJSON(http.StatusOK, reply.Features)
+}
+func projectInit(c *gin.Context) {
+	var req RequestStringProjectId
+	if err := c.ShouldBindQuery(&req); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+		return
+	}
+	quasarDir := "/home/roger/workspace/generator-mobile/quasar"
+	baseDir := "./projects/" + req.ProjectId + "/"
+	var cmds []*exec.Cmd
+
+	if _, err := os.Stat(baseDir); os.IsNotExist(err) {
+		cmds = append(cmds, exec.Command("mkdir", baseDir))
+	}
+	copyFiles := []string{"src", ".quasar", "quasar.conf.js"}
+	for _, v := range copyFiles {
+		if _, err := os.Stat(baseDir + "/" + v); os.IsNotExist(err) {
+			cmds = append(cmds, exec.Command("cp", "-r", quasarDir+"/"+v, baseDir))
+		}
+	}
+	linkFiles := []string{"node_modules", "babel.config.js", "jsconfig.json", "package.json", "yarn.lock", ".eslintignore", ".eslintrc.js", ".gitignore", ".postcssrc.js"}
+	for _, v := range linkFiles {
+		if _, err := os.Stat(baseDir + "/" + v); os.IsNotExist(err) {
+			cmds = append(cmds, exec.Command("ln", "-s", quasarDir+"/"+v, baseDir))
+		}
+	}
+	// Run the pipeline
+	_, _, err := utils.Pipeline(cmds...)
+	if err != nil && !strings.HasPrefix(err.Error() , "exit"){
+		fmt.Println("err" , err)
+		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+		return
+	}
+
+	// Print the stderr, if any
+	//if len(stderr) > 0 {
+	//	c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(string(stderr)))
+	//	return
+	//}
+
+	//cmd := exec.Command("quasar", "build")
+	//cmd.Dir = baseDir
+	////显示运行的命令
+	//stdout, err := cmd.StdoutPipe()
+	//if err != nil {
+	//	fmt.Println(err)
+	//	c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+	//	return
+	//}
+	//
+	//cmd.Start()
+	//reader := bufio.NewReader(stdout)
+	//
+	////实时循环读取输出流中的一行内容
+	//buf := new(bytes.Buffer)
+	//for {
+	//	line, err2 := reader.ReadString('\n')
+	//	if err2 != nil || io.EOF == err2 {
+	//		break
+	//	}
+	//	buf.WriteString(line + "<br />")
+	//}
+	//
+	//cmd.Wait()
+
+	c.AbortWithStatus(http.StatusOK)
 }
