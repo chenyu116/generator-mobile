@@ -90,6 +90,33 @@ func features(c *gin.Context) {
 	c.AbortWithStatusJSON(http.StatusOK, reply.Feature)
 }
 
+func feature(c *gin.Context) {
+	var req RequestInt32FeatureId
+	if err := c.ShouldBindQuery(&req); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+		return
+	}
+	if req.FeatureId <= 0 {
+		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError("invalid params"))
+		return
+	}
+	dbServerConn, ok := utils.DbServerGrpcConn.Get().(*grpc.ClientConn)
+	if !ok {
+		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError("GRPC connection lost"))
+		return
+	}
+	defer utils.DbServerGrpcConn.Put(dbServerConn)
+	client := pb.NewApiClient(dbServerConn)
+	reply, err := client.Feature(context.Background(), &pb.FeatureRequest{
+		FeatureId: req.FeatureId,
+	})
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+		return
+	}
+	c.AbortWithStatusJSON(http.StatusOK, reply.Feature)
+}
+
 func projectFeatures(c *gin.Context) {
 	var req RequestInt32ProjectId
 	if err := c.ShouldBindQuery(&req); err != nil {
@@ -150,8 +177,8 @@ func projectInit(c *gin.Context) {
 	}
 	// Run the pipeline
 	_, _, err := utils.Pipeline(cmds...)
-	if err != nil && !strings.HasPrefix(err.Error() , "exit"){
-		fmt.Println("err" , err)
+	if err != nil && !strings.HasPrefix(err.Error(), "exit") {
+		fmt.Println("err", err)
 		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
 		return
 	}
