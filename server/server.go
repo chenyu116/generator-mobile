@@ -47,7 +47,19 @@ func (s *Server) Start() {
 
 	r.NoMethod(NotFound)
 	r.NoRoute(NotFound)
-
+	r.NoRoute(func(c *gin.Context) {
+		if c.Request.Method == "OPTIONS" {
+			c.Header("Access-Control-Allow-Credentials", "true")
+			c.Header("Access-Control-Allow-Origin", c.Request.Header.Get("Origin"))
+			c.Header("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE, OPTIONS")
+			c.Header("Access-Control-Allow-Headers", "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Content-Range,Range,x-token,x-valid-code,x-refresh")
+			c.Header("Content-Type", "text/plain; charset=utf-8")
+			c.Header("Content-Length", "0")
+			c.AbortWithStatus(http.StatusNoContent)
+			return
+		}
+		c.AbortWithStatus(http.StatusNotFound)
+	})
 	v1 := r.Group("/v1")
 
 	v1.GET("/projects", projects)
@@ -56,6 +68,7 @@ func (s *Server) Start() {
 	v1.GET("/project/init", projectInit)
 	v1.GET("/features", features)
 	v1.GET("/feature", feature)
+	v1.POST("/install", install)
 
 	log.Infof("Server Started! Addr: \"%s\"", cf.Serve.HostPort)
 

@@ -216,3 +216,60 @@ func projectInit(c *gin.Context) {
 
 	c.AbortWithStatus(http.StatusOK)
 }
+
+func install(c *gin.Context) {
+	var req RequestPostInstall
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+		return
+	}
+	if req.FeatureId <= 0 {
+		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError("invalid params"))
+		return
+	}
+	if req.ProjectId <= 0 {
+		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError("invalid params"))
+		return
+	}
+	fileName := fmt.Sprintf("./packages/%s-%s.zip", req.FeatureName, req.Version.FeatureVersionName)
+	if _, err := os.Stat(fileName); os.IsNotExist(err) {
+		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError("package: "+fileName+" not found"))
+		return
+	}
+	var cmds []*exec.Cmd
+	baseDir := "./install/" + strconv.Itoa(int(req.ProjectId))
+
+	if _, err := os.Stat(baseDir); os.IsNotExist(err) {
+		cmds = append(cmds, exec.Command("mkdir", baseDir))
+	}
+
+	cmds = append(cmds, exec.Command("unzip", fileName, "-d", baseDir))
+	_, _, err := utils.Pipeline(cmds...)
+	if err != nil && !strings.HasPrefix(err.Error(), "exit") {
+		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+		return
+	}
+	//dbServerConn, ok := utils.DbServerGrpcConn.Get().(*grpc.ClientConn)
+	//if !ok {
+	//	c.AbortWithStatusJSON(http.StatusBadRequest, jsonError("GRPC connection lost"))
+	//	return
+	//}
+	//defer utils.DbServerGrpcConn.Put(dbServerConn)
+	//client := pb.NewApiClient(dbServerConn)
+	//reply, err := client.CreateProjectFeature(context.Background(), &pb.CreateProjectFeatureRequest{
+	//	FeatureId:            req.FeatureId,
+	//	ProjectFeatureType:   req.Type,
+	//	ProjectFeatureConfig: req.Version.FeatureVersionConfig,
+	//	ProjectId:            req.ProjectId,
+	//	FeatureVersionId:     req.Version.FeatureVersionId,
+	//})
+	//if err != nil {
+	//	c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+	//	return
+	//}
+	//
+	////
+	//fmt.Printf("%+v", reply)
+
+	c.AbortWithStatus(http.StatusNoContent)
+}
