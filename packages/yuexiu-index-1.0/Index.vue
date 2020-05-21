@@ -30,23 +30,7 @@
 				>
 				<v-spacer></v-spacer>
 
-				<v-menu offset-y bottom>
-					<template v-slot:activator="{ on }">
-						<v-btn v-on="on" icon>
-							<v-icon>fa-language</v-icon>
-						</v-btn>
-					</template>
-					<v-list dense="">
-						<v-list-item
-							v-for="(item, index) in $i18n.messages"
-							:key="index"
-							@click="changeLang(index)"
-							class=" subtitle-2"
-						>
-							{{ $t(index) }}
-						</v-list-item>
-					</v-list>
-				</v-menu>
+				__feature.language__
 			</v-app-bar>
 			<v-row
 				no-gutters=""
@@ -597,7 +581,7 @@ export default {
 	width: 100%;
 	height: 28em;
 	top: 0;
-	background: url("../assets/homeBg.jpg") no-repeat center center;
+	background: url("__data.homeBg__") no-repeat center center;
 	background-size: cover;
 }
 .round {
