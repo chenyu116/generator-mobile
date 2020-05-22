@@ -158,7 +158,7 @@ func projectInit(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
 		return
 	}
-	quasarDir := "/home/roger/workspace/generator-mobile/quasar"
+	quasarDir := "/home/roger/workspace/quasar"
 	baseDir := "./projects/" + req.ProjectId + "/"
 	var cmds []*exec.Cmd
 
@@ -312,6 +312,22 @@ func install(c *gin.Context) {
 	if _, err := os.Stat(installDir); os.IsNotExist(err) {
 		cmds = append(cmds, exec.Command("mkdir", installDir))
 	}
+
+	files, err := ioutil.ReadDir(packageDir)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+		return
+	}
+
+	for _, f := range files {
+		if strings.HasSuffix(f.Name(), ".tmpl") {
+			continue
+		}
+		if _, err := os.Stat(installDir + "/" + f.Name()); os.IsNotExist(err) {
+			cmds = append(cmds, exec.Command("cp", packageDir+"/"+f.Name(), installDir))
+		}
+	}
+
 	if len(cmds) > 0 {
 		_, stderr, err := utils.Pipeline(cmds...)
 		if err != nil && !strings.HasPrefix(err.Error(), "exit") {
@@ -324,6 +340,7 @@ func install(c *gin.Context) {
 			return
 		}
 	}
+	var uploadFiles []paramsUploadFile
 	writeFiles := make(map[string]string)
 	fmt.Printf("%+v", req.Version.FeatureVersionConfig.Data)
 	for _, v := range req.Version.FeatureVersionConfig.Data {
@@ -358,7 +375,16 @@ func install(c *gin.Context) {
 		}
 		targetString = strings.Replace(targetString, "__data."+v.Template+"__", buf.String(), 1)
 		targetString = strings.Replace(targetString, "&#34;", `"`, -1)
+		targetString = strings.Replace(targetString, "&#39;", `'`, -1)
 		writeFiles[v.Target] = targetString
+		for _, value := range v.Values {
+			if value.Type == "upload" && value.Value != nil {
+				uploadFiles = append(uploadFiles, paramsUploadFile{
+					Dst:  installDir,
+					File: value.Value.(string),
+				})
+			}
+		}
 	}
 
 	for _, v := range req.Version.FeatureVersionConfig.Features {
@@ -389,6 +415,7 @@ func install(c *gin.Context) {
 		}
 		targetString = strings.Replace(targetString, "__feature."+v.Template+"__", buf.String(), 1)
 		targetString = strings.Replace(targetString, "&#34;", `"`, -1)
+		targetString = strings.Replace(targetString, "&#39;", `'`, -1)
 		writeFiles[v.Target] = targetString
 	}
 
@@ -453,6 +480,14 @@ func install(c *gin.Context) {
 		if req.Type == "entrance" {
 			entranceName = featureName
 		}
+
+		if req.Type == "page" {
+			routes = append(routes, paramsRoutesJsRoutesParam{
+				Path: req.RoutePath,
+				Page: "components/" + featureName + "/Index.vue",
+			})
+		}
+
 		routesJs := paramsRoutesJs{
 			EntranceName: "components/" + entranceName + "/Index.vue",
 			Routes:       routes,
@@ -475,19 +510,35 @@ func install(c *gin.Context) {
 		}
 	}
 
-	//_, err = client.CreateProjectFeature(context.Background(), &pb.CreateProjectFeatureRequest{
-	//	FeatureId:                  req.FeatureId,
-	//	ProjectFeaturesType:        req.Type,
-	//	ProjectFeaturesConfig:      configString,
-	//	ProjectId:                  req.ProjectId,
-	//	FeatureVersionId:           req.Version.FeatureVersionId,
-	//	ProjectFeaturesInstallName: featureName,
-	//	ProjectFeaturesRoutePath:   req.RoutePath,
-	//})
-	//if err != nil {
-	//	c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
-	//	return
-	//}
+	if len(uploadFiles) > 0 {
+		cmds = cmds[:0]
+		for _, v := range uploadFiles {
+			cmds = append(cmds, exec.Command("mv", "./tmp/"+v.File, v.Dst))
+		}
+		_, stderr, err := utils.Pipeline(cmds...)
+		if err != nil && !strings.HasPrefix(err.Error(), "exit") {
+			c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+			return
+		}
 
+		if len(stderr) > 0 {
+			c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(string(stderr)))
+			return
+		}
+	}
+	_, err = client.CreateProjectFeature(context.Background(), &pb.CreateProjectFeatureRequest{
+		FeatureId:                  req.FeatureId,
+		ProjectFeaturesType:        req.Type,
+		ProjectFeaturesConfig:      configString,
+		ProjectId:                  req.ProjectId,
+		FeatureVersionId:           req.Version.FeatureVersionId,
+		ProjectFeaturesInstallName: featureName,
+		ProjectFeaturesRoutePath:   req.RoutePath,
+		ProjectFeaturesName:        req.ProjectFeaturesName,
+	})
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+		return
+	}
 	c.AbortWithStatus(http.StatusNoContent)
 }

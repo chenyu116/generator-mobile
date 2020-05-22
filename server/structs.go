@@ -21,6 +21,7 @@ type RequestPostInstall struct {
 	FeatureVersionConfigString string         `form:"featureVersionConfigString" binding:"required" json:"featureVersionConfigString"`
 	Type                       string         `form:"type" binding:"required" json:"type"`
 	RoutePath                  string         `form:"routePath" json:"routePath"`
+	ProjectFeaturesName        string         `form:"projectFeaturesName" json:"projectFeaturesName"`
 }
 
 type featureVersion struct {
@@ -39,11 +40,13 @@ type featureVersionConfigData struct {
 	Target   string                          `form:"target" binding:"required" json:"target"`
 	Values   []featureVersionConfigDataValue `form:"values" binding:"required" json:"values"`
 }
+
 type featureVersionConfigFeature struct {
 	featureVersionConfigData
 	Limit int      `form:"limit" binding:"required" json:"limit"`
 	Type  []string `form:"type"  json:"type"`
 }
+
 type featureVersionConfig struct {
 	Data     []featureVersionConfigData    `form:"data" json:"data"`
 	Features []featureVersionConfigFeature `form:"features" json:"features"`
@@ -61,4 +64,9 @@ type paramsRoutesJs struct {
 type paramsTemplateParse struct {
 	InstallDir string
 	Values     []featureVersionConfigDataValue
+}
+
+type paramsUploadFile struct {
+	Dst  string
+	File string
 }

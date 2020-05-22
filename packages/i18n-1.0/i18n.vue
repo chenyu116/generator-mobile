@@ -18,7 +18,6 @@ export default {
   mounted() {},
   methods: {
     changeLanguage(lang) {
-      console.dir(this);
       console.log(lang, this.$i18n.locale);
       if (lang === this.$i18n.locale) {
         return;
