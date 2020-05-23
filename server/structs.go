@@ -30,9 +30,10 @@ type featureVersion struct {
 	FeatureVersionId     int32                `form:"feature_version_id" binding:"required" json:"feature_version_id"`
 }
 type featureVersionConfigDataValue struct {
-	Key   string      `form:"key" binding:"required" json:"key"`
-	Type  string      `form:"type" binding:"required" json:"type"`
-	Value interface{} `form:"value" binding:"required" json:"value"`
+	Key                   string      `form:"key" binding:"required" json:"key"`
+	Type                  string      `form:"type" binding:"required" json:"type"`
+	Value                 interface{} `form:"value" binding:"required" json:"value"`
+	ProjectFeaturesConfig featureVersionConfig      `form:"project_features_config" json:"project_features_config"`
 }
 type featureVersionConfigData struct {
 	Name     string                          `form:"name" binding:"required" json:"name"`

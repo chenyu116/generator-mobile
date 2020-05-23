@@ -255,6 +255,7 @@ func install(c *gin.Context) {
 		return
 	}
 	//fmt.Printf("%+v",req)
+	//fmt.Printf("%+v",req.Version.FeatureVersionConfig.Features)
 	//return
 	configString := strings.Replace(req.FeatureVersionConfigString, `\"`, `"`, -1)
 	configString = strings.Replace(configString, `"{`, `{`, -1)
@@ -353,14 +354,14 @@ func install(c *gin.Context) {
 			InstallDir: strings.Replace(installDir, projectDir+"/src/", "", 1),
 			Values:     v.Values,
 		}
-		fmt.Println("newParamsTemplateParse", newParamsTemplateParse)
+		//fmt.Println("newParamsTemplateParse", newParamsTemplateParse)
 		buf := new(bytes.Buffer)
 		err = t.Execute(buf, newParamsTemplateParse)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
 			return
 		}
-		fmt.Println("buf.String()", buf.String())
+		//fmt.Println("buf.String()", buf.String())
 		targetString := ""
 		if s, ok := writeFiles[v.Target]; ok {
 			targetString = s
@@ -377,31 +378,22 @@ func install(c *gin.Context) {
 		targetString = strings.Replace(targetString, "&#34;", `"`, -1)
 		targetString = strings.Replace(targetString, "&#39;", `'`, -1)
 		writeFiles[v.Target] = targetString
+
 		for _, value := range v.Values {
-			if value.Type == "upload" && value.Value != nil {
-				uploadFiles = append(uploadFiles, paramsUploadFile{
-					Dst:  installDir,
-					File: value.Value.(string),
-				})
+			if value.Type == "upload" {
+				uploadPath, ok := value.Value.(string)
+				if ok && uploadPath != "" && len(uploadPath) > 32 {
+					fmt.Printf("upload %+v", uploadPath)
+					uploadFiles = append(uploadFiles, paramsUploadFile{
+						Dst:  installDir,
+						File: uploadPath,
+					})
+				}
 			}
 		}
 	}
 
 	for _, v := range req.Version.FeatureVersionConfig.Features {
-		t, err := template.ParseFiles(packageDir + "/" + v.Template + ".tmpl")
-		if err != nil {
-			continue
-			c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
-			return
-		}
-		buf := new(bytes.Buffer)
-		if len(v.Values) > 0 {
-			err = t.Execute(buf, v.Values)
-			if err != nil {
-				c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
-				return
-			}
-		}
 		targetString := ""
 		if s, ok := writeFiles[v.Target]; ok {
 			targetString = s
@@ -412,6 +404,27 @@ func install(c *gin.Context) {
 				return
 			}
 			targetString = string(b)
+		}
+		fmt.Printf("Values %+v",v.Values)
+		fmt.Printf("targetString %s\n\n",targetString)
+		buf := new(bytes.Buffer)
+		var t *template.Template
+		if v.Target == v.Template {
+			t, err = template.New(".").Parse(targetString)
+		} else {
+			t, err = template.ParseFiles(packageDir + "/" + v.Template + ".tmpl")
+		}
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+			return
+		}
+
+		if len(v.Values) > 0 {
+			err = t.Execute(buf, v.Values)
+			if err != nil {
+				c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+				return
+			}
 		}
 		targetString = strings.Replace(targetString, "__feature."+v.Template+"__", buf.String(), 1)
 		targetString = strings.Replace(targetString, "&#34;", `"`, -1)
@@ -526,19 +539,19 @@ func install(c *gin.Context) {
 			return
 		}
 	}
-	_, err = client.CreateProjectFeature(context.Background(), &pb.CreateProjectFeatureRequest{
-		FeatureId:                  req.FeatureId,
-		ProjectFeaturesType:        req.Type,
-		ProjectFeaturesConfig:      configString,
-		ProjectId:                  req.ProjectId,
-		FeatureVersionId:           req.Version.FeatureVersionId,
-		ProjectFeaturesInstallName: featureName,
-		ProjectFeaturesRoutePath:   req.RoutePath,
-		ProjectFeaturesName:        req.ProjectFeaturesName,
-	})
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
-		return
-	}
+	//_, err = client.CreateProjectFeature(context.Background(), &pb.CreateProjectFeatureRequest{
+	//	FeatureId:                  req.FeatureId,
+	//	ProjectFeaturesType:        req.Type,
+	//	ProjectFeaturesConfig:      configString,
+	//	ProjectId:                  req.ProjectId,
+	//	FeatureVersionId:           req.Version.FeatureVersionId,
+	//	ProjectFeaturesInstallName: featureName,
+	//	ProjectFeaturesRoutePath:   req.RoutePath,
+	//	ProjectFeaturesName:        req.ProjectFeaturesName,
+	//})
+	//if err != nil {
+	//	c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+	//	return
+	//}
 	c.AbortWithStatus(http.StatusNoContent)
 }
