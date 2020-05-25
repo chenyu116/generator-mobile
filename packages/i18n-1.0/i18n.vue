@@ -22,13 +22,8 @@ export default {
       if (lang === this.$i18n.locale) {
         return;
       }
-
-      const spinner =
-        typeof QSpinnerGears !== 'undefined'
-          ? QSpinnerGears
-          : Quasar.components.QSpinnerGears;
       this.$q.loading.show({
-        spinner,
+        QSpinnerGears,
         spinnerColor: 'info',
         messageColor: 'white',
         spinnerSize: 'md',

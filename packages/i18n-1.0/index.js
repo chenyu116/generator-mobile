@@ -16,7 +16,7 @@ const readI18nMessagesFromRemote = function (params) {
         params.Vue.http
           .get(params.store.state.global.apiHost + "language", {
             params: {
-              project_id: __data.projectId__,
+              project_id: params.store.state.global.startPointInfo.project_id,
               timestamp: parseInt(new Date().getTime() / 1000),
             },
           })

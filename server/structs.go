@@ -15,13 +15,9 @@ type RequestInt32FeatureId struct {
 type RequestPostInstall struct {
 	RequestInt32FeatureId
 	RequestInt32ProjectId
-	FeatureOnBoot              bool           `form:"featureOnBoot" json:"featureOnBoot"`
-	FeatureName                string         `form:"featureName" binding:"required" json:"featureName"`
-	Version                    featureVersion `form:"version" binding:"required" json:"version"`
-	FeatureVersionConfigString string         `form:"featureVersionConfigString" binding:"required" json:"featureVersionConfigString"`
-	Type                       string         `form:"type" binding:"required" json:"type"`
-	RoutePath                  string         `form:"routePath" json:"routePath"`
-	ProjectFeaturesName        string         `form:"projectFeaturesName" json:"projectFeaturesName"`
+	Version             featureVersion `form:"version" binding:"required" json:"version"`
+	Type                string         `form:"type" binding:"required" json:"type"`
+	ProjectFeaturesName string         `form:"projectFeaturesName" json:"projectFeaturesName"`
 }
 
 type featureVersion struct {
@@ -30,27 +26,37 @@ type featureVersion struct {
 	FeatureVersionId     int32                `form:"feature_version_id" binding:"required" json:"feature_version_id"`
 }
 type featureVersionConfigDataValue struct {
-	Key                   string      `form:"key" binding:"required" json:"key"`
-	Type                  string      `form:"type" binding:"required" json:"type"`
-	Value                 interface{} `form:"value" binding:"required" json:"value"`
-	ProjectFeaturesConfig featureVersionConfig      `form:"project_features_config" json:"project_features_config"`
+	Key      string      `form:"key" binding:"required" json:"key"`
+	FormType string      `form:"formType" binding:"required" json:"formType"`
+	Value    interface{} `form:"value" binding:"required" json:"value"`
+	Name     string      `form:"name" binding:"required" json:"name"`
 }
 type featureVersionConfigData struct {
-	Name     string                          `form:"name" binding:"required" json:"name"`
-	Template string                          `form:"template" binding:"required" json:"template"`
-	Target   string                          `form:"target" binding:"required" json:"target"`
-	Values   []featureVersionConfigDataValue `form:"values" binding:"required" json:"values"`
+	Name     string                          `form:"name" json:"name"`
+	Template string                          `form:"template" json:"template"`
+	Values   []featureVersionConfigDataValue `form:"values" json:"values"`
 }
 
-type featureVersionConfigFeature struct {
-	featureVersionConfigData
-	Limit int      `form:"limit" binding:"required" json:"limit"`
-	Type  []string `form:"type"  json:"type"`
+type featureVersionConfigComponent struct {
+	Name     string                               `form:"name" json:"name"`
+	Template string                               `form:"template" binding:"required" json:"template"`
+	Key      string                               `form:"key" binding:"required" json:"key"`
+	Limit    int                                  `form:"limit" json:"limit"`
+	Accept   []string                             `form:"accept"  json:"accept"`
+	Values   []featureVersionConfigComponentValue `form:"values" binding:"required" json:"values"`
+}
+
+type featureVersionConfigComponentValue struct {
+	ProjectFeaturesId          int32                `form:"project_features_id" binding:"required" json:"project_features_id"`
+	ProjectFeaturesConfig      featureVersionConfig `form:"project_features_config" binding:"required" json:"project_features_config"`
+	ComponentHash              string               `form:"componentHash" json:"componentHash"`
+	ProjectFeaturesInstallName string               `form:"project_features_install_name" json:"project_features_install_name"`
 }
 
 type featureVersionConfig struct {
-	Data     []featureVersionConfigData    `form:"data" json:"data"`
-	Features []featureVersionConfigFeature `form:"features" json:"features"`
+	Data         featureVersionConfigData        `form:"data" json:"data"`
+	Dependencies []string                        `form:"dependencies" json:"dependencies"`
+	Components   []featureVersionConfigComponent `form:"components" json:"components"`
 }
 
 type paramsRoutesJsRoutesParam struct {
@@ -63,8 +69,9 @@ type paramsRoutesJs struct {
 }
 
 type paramsTemplateParse struct {
-	InstallDir string
-	Values     []featureVersionConfigDataValue
+	ComponentHash string
+	InstallDir    string
+	Config        featureVersionConfig
 }
 
 type paramsUploadFile struct {
