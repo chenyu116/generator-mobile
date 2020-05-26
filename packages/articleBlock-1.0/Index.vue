@@ -1,9 +1,9 @@
 <template>
   <q-card flat="" square="">
     <q-card-section>
-      <div class="text-h5">{{print "{{ $t('title') }}"}}</div>
+      <div class="text-h5">{{print "{{ $t(title) }}"}}</div>
       <div class="text-subtitle2 q-ml-md text-grey">
-        - {{print "{{ $t('subtitle') }}"}}
+        - {{print "{{ $t(subtitle) }}"}}
       </div>
     </q-card-section>
     <q-card-section class="q-pt-none">
@@ -29,9 +29,9 @@ export default {
   data() {
     return {
       title:
-        '{{range $i,$e:=.Config.Data.Values}}{{if eq $e.Key "title"}}{{ $e.Value }}{{ end }}{{ end }}',
+        '{{.DataValues.title}}',
       subtitle:
-        '{{range $i,$e:=.Config.Data.Values}}{{if eq $e.Key "subtitle"}}{{ $e.Value }}{{ end }}{{ end }}',
+        '{{.DataValues.subtitle}}',
       articles: [],
     };
   },
@@ -53,11 +53,8 @@ export default {
     },
     loadArticles() {
       const self = this;
-      const articleCategoryId =
-        '{{range $i,$e:=.Config.Data.Values}}{{if eq $e.Key "articleCategoryId"}}{{$e.Value}}{{end}}{{end}}';
-      let articleLimit = parseInt(
-        '{{range $i,$e:=.Config.Data.Values}}{{if eq $e.Key "articleShowCount"}}{{$e.Value}}{{end}}{{end}}',
-      );
+      const articleCategoryId = '{{.DataValues.articleCategoryId}}';
+      let articleLimit = parseInt('{{.DataValues.articleShowCount}}');
       if (isNaN(articleLimit) || articleLimit <= 0) {
         articleLimit = 3;
       }

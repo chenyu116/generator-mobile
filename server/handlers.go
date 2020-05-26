@@ -304,26 +304,21 @@ func install(c *gin.Context) {
 	//if _, err := os.Stat(baseDir); os.IsNotExist(err) {
 	//	cmds = append(cmds, exec.Command("mkdir", baseDir))
 	//}
-	featureName := fmt.Sprintf("%s-%s-%s", featureDetails.Feature.FeatureName, req.Version.FeatureVersionName, req.Type)
+	newUUID, err := uuid.NewUUID()
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+		return
+	}
+	featureName := fmt.Sprintf("%s-%s-%s-%s", featureDetails.Feature.FeatureName, req.Version.FeatureVersionName, req.Type, newUUID.String()[:8])
 
 	//cmds = append(cmds, exec.Command("unzip", "-o", fileName, "-d", featureDir))
 
 	installDir := ""
+
 	if featureDetails.Feature.FeatureOnboot {
 		installDir = fmt.Sprintf("%s/src/boot/%s", projectDir, featureName)
 	} else {
-		if req.Type == "entrance" || !featureDetails.Feature.FeatureReuse {
-			installDir = fmt.Sprintf("%s/src/components/%s", projectDir, featureName)
-		} else {
-			newUUID, err := uuid.NewUUID()
-			if err != nil {
-				c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
-				return
-			}
-			installDir = fmt.Sprintf("%s/src/components/%s-%s", projectDir, featureName, newUUID.String()[:8])
-			featureName = fmt.Sprintf("%s-%s", featureName, newUUID.String()[:8])
-		}
-
+		installDir = fmt.Sprintf("%s/src/components/%s", projectDir, featureName)
 	}
 	if _, err := os.Stat(installDir); os.IsNotExist(err) {
 		cmds = append(cmds, exec.Command("mkdir", installDir))
@@ -360,11 +355,15 @@ func install(c *gin.Context) {
 	writeFiles := make(map[string]string)
 	buf := new(bytes.Buffer)
 
+	dataValues := make(map[string]interface{})
+	for _, v := range req.Version.FeatureVersionConfig.Data.Values {
+		dataValues[v.Key] = v.Value
+	}
 	newParamsTemplateParse := paramsTemplateParse{
 		InstallDir: strings.Replace(installDir, projectDir+"/src/", "", 1),
 		Config:     req.Version.FeatureVersionConfig,
+		DataValues: dataValues,
 	}
-	fmt.Printf("featureNameSplit %+v", newParamsTemplateParse)
 	// parse Data
 	if req.Version.FeatureVersionConfig.Data.Template != "" {
 		t, err := template.ParseFiles(packageDir + "/" + req.Version.FeatureVersionConfig.Data.Template)
@@ -539,79 +538,93 @@ func install(c *gin.Context) {
 		}
 	}
 
-	//reply, err := client.ProjectFeaturesByProjectId(context.Background(), &pb.ProjectFeaturesByProjectIdRequest{
-	//	ProjectId: req.ProjectId,
-	//})
-	//if err != nil {
-	//	c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
-	//	return
-	//}
-	//if req.FeatureOnBoot {
-	//	bootString := []string{}
-	//
-	//	for _, v := range reply.Features {
-	//		if v.FeatureOnboot {
-	//			bootString = append(bootString, fmt.Sprintf(`'%s-%s-%s'`, v.FeatureName, v.FeatureVersionName, v.ProjectFeaturesType))
-	//		}
-	//	}
-	//	bootString = append(bootString, `'`+featureName+`'`)
-	//	quasarConfFileByte, err := ioutil.ReadFile("./packages/quasar.conf.js.tmpl")
-	//	if err != nil {
-	//		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
-	//		return
-	//	}
-	//	newQuasarConfFileString := strings.Replace(string(quasarConfFileByte), "__data.boot__", strings.Join(bootString, ","), 1)
-	//	err = ioutil.WriteFile(projectDir+"/quasar.conf.js", []byte(newQuasarConfFileString), os.ModePerm)
-	//	if err != nil {
-	//		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
-	//		return
-	//	}
-	//} else {
-	//	entranceName := ""
-	//	var routes []paramsRoutesJsRoutesParam
-	//	for _, v := range reply.Features {
-	//		if v.GetProjectFeaturesType() == "entrance" {
-	//			entranceName = v.GetProjectFeaturesInstallName()
-	//		}
-	//		if v.GetProjectFeaturesRoutePath() != "" {
-	//			routes = append(routes, paramsRoutesJsRoutesParam{
-	//				Path: v.GetProjectFeaturesRoutePath(),
-	//				Page: "components/" + v.GetProjectFeaturesInstallName() + "/Index.vue",
-	//			})
-	//		}
-	//	}
-	//	if req.Type == "entrance" {
-	//		entranceName = featureName
-	//	}
-	//
-	//	if req.Type == "page" {
-	//		routes = append(routes, paramsRoutesJsRoutesParam{
-	//			Path: req.RoutePath,
-	//			Page: "components/" + featureName + "/Index.vue",
-	//		})
-	//	}
-	//
-	//	routesJs := paramsRoutesJs{
-	//		EntranceName: "components/" + entranceName + "/Index.vue",
-	//		Routes:       routes,
-	//	}
-	//	routesJsTemp, err := template.ParseFiles("./packages/routes.js.tmpl")
-	//	if err != nil {
-	//		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
-	//		return
-	//	}
-	//	buf := new(bytes.Buffer)
-	//	err = routesJsTemp.Execute(buf, routesJs)
-	//	if err != nil {
-	//		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
-	//		return
-	//	}
-	//	err = ioutil.WriteFile(projectDir+"/src/router/routes.js", buf.Bytes(), os.ModePerm)
-	//	if err != nil {
-	//		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
-	//		return
-	//	}
-	//}
+	projectFeatures, err := client.ProjectFeaturesByProjectId(context.Background(), &pb.ProjectFeaturesByProjectIdRequest{
+		ProjectId: req.ProjectId,
+	})
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+		return
+	}
+	if featureDetails.Feature.FeatureOnboot {
+		bootString := []string{}
+
+		for _, v := range projectFeatures.Features {
+			if v.FeatureOnboot {
+				bootString = append(bootString, v.GetProjectFeaturesInstallName())
+			}
+		}
+		bootString = append(bootString, `'`+featureName+`'`)
+		quasarT, err := template.ParseFiles("./packages/quasar.conf.js.tmpl")
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+			return
+		}
+		buf.Reset()
+		err = quasarT.Execute(buf, bootString)
+		err = ioutil.WriteFile(projectDir+"/quasar.conf.js", buf.Bytes(), os.ModePerm)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+			return
+		}
+	} else {
+		entranceName := ""
+		var routes []paramsRoutesJsRoutesParam
+		for _, v := range projectFeatures.Features {
+			if v.GetProjectFeaturesType() == "entrance" {
+				entranceName = v.GetProjectFeaturesInstallName()
+			}
+
+			var projectFeatureConfig featureVersionConfig
+			err = json.Unmarshal([]byte(v.GetProjectFeaturesConfig()), &projectFeatureConfig)
+			if err == nil {
+				for _, cf := range projectFeatureConfig.Data.Values {
+					if cf.Key == "routePath" {
+						routes = append(routes, paramsRoutesJsRoutesParam{
+							Path: cf.Value.(string),
+							Page: "components/" + v.GetProjectFeaturesInstallName() + "/Index.vue",
+						})
+						break
+					}
+				}
+			}
+		}
+		if req.Type == "entrance" {
+			entranceName = featureName
+		}
+
+		if req.Type == "page" {
+			for _, cf := range req.Version.FeatureVersionConfig.Data.Values {
+				if cf.Key == "routePath" {
+					routes = append(routes, paramsRoutesJsRoutesParam{
+						Path: cf.Value.(string),
+						Page: "components/" + featureName + "/Index.vue",
+					})
+					break
+				}
+			}
+		}
+
+		routesJs := paramsRoutesJs{
+			EntranceName: "components/" + entranceName + "/Index.vue",
+			Routes:       routes,
+		}
+		routesJsTemp, err := template.ParseFiles("./packages/routes.js.tmpl")
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+			return
+		}
+		buf.Reset()
+		err = routesJsTemp.Execute(buf, routesJs)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+			return
+		}
+		err = ioutil.WriteFile(projectDir+"/src/router/routes.js", buf.Bytes(), os.ModePerm)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+			return
+		}
+	}
 	//
 	if len(uploadFiles) > 0 {
 		cmds = cmds[:0]

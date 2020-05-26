@@ -1,6 +1,6 @@
 <template>
   <q-layout view="lHh Lpr lFf" class="bg-white">
-    <HeaderWithBack icon="{{range $i,$e:=.Config.Data.Values}}{{if eq $e.Key "icon"}}{{$e.Value}}{{end}}{{end}}" title="{{range $i,$e:=.Config.Data.Values}}{{if eq $e.Key "title"}}{{$e.Value}}{{end}}{{end}}"/>
+    <HeaderWithBack icon="{{.DataValues.icon}}" title="{{.DataValues.title}}"/>
     <q-page-container>
       <q-page></q-page>
     </q-page-container>

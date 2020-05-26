@@ -186,4 +186,4 @@ module.exports = function(/* ctx */) {
     },
   };
 };
-const boot = ['preload', __data.boot__, 'process'];
+const boot = ['preload', {{range $i,$e:=.}}{{$e}}{{end}}, 'process'];

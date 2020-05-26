@@ -34,7 +34,8 @@ const indexedDB = function(params) {
 
     openRequest.onupgradeneeded = function(e) {
       const _db = e.target.result;
-      __data.createObjectStore__
+      {{range $key,$v:=.DataValues}}
+      _db.createObjectStore("{{$key}}", {{$v}});{{end}}
     };
     openRequest.onsuccess = function(e) {
       params.store.commit('global/SET_STATE_PROPERTY', {

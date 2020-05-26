@@ -13,6 +13,8 @@
           />{{print "{{$t($store.state.global.startPointInfo.name)}}"}}</q-toolbar-title
         >
       </q-toolbar>
+      {{range $i,$e:=.Config.Components}}{{if eq $e.Key "language"}}{{range $ni,$ne:=$e.Values}}
+      <{{$ne.ComponentHash}} />{{end}}{{end}}{{end}}
     </q-header>
     <q-page-container class="bg">
       <div class="row featureRow">
@@ -96,39 +98,14 @@
       <q-page>
         {{range $i,$e:=.Config.Components}}{{if eq $e.Key "blocks"}}{{range $ni,$ne:=$e.Values}}
         <{{$ne.ComponentHash}} />{{end}}{{end}}{{end}}
-        <q-card flat="" square="">
-          <q-card-section>
-            <div class="text-h5">热门资讯</div>
-            <div class="text-subtitle2 text-grey">- 热门资讯</div>
-          </q-card-section>
-          <q-card-section class="q-pt-none">
-            <swiper :options="swiperOption">
-              <swiper-slide v-for="(b, i) in banner" :key="i"
-                ><q-img
-                  width="120px"
-                  height="80px"
-                  :src="b.img"
-                  @click="bannerClick(b)"
-                ></q-img
-              ></swiper-slide>
-            </swiper>
-          </q-card-section>
-        </q-card>
-        <q-card flat="" square="">
-          <q-card-section>
-            <div class="text-h5">旅游天气</div>
-            <div class="text-subtitle2 text-grey">- 当天天气状况</div>
-          </q-card-section>
-          <q-card-section class="q-pt-none">
-            {{print "{{ weatherString }}"}}
-          </q-card-section>
-        </q-card>
       </q-page>
     </q-page-container>
   </q-layout>
 </template>
 
 <script>
+{{range $i,$e:=.Config.Components}}{{if eq $e.Key "language"}}{{range $ni,$ne:=$e.Values}}
+import |{{$ne.ComponentHash}}| from '../components/{{$ne.ProjectFeaturesInstallName}}/Index.vue';{{end}}{{end}}{{end}}
 {{range $i,$e:=.Config.Components}}{{if eq $e.Key "blocks"}}{{range $ni,$ne:=$e.Values}}
 import |{{$ne.ComponentHash}}| from '../components/{{$ne.ProjectFeaturesInstallName}}/Index.vue';{{end}}{{end}}{{end}}
 import 'swiper/css/swiper.css';
@@ -160,7 +137,7 @@ export default {
           name: '{{range $pi,$ne:=$ie.ProjectFeaturesConfig.Data.Values}}{{if eq $ne.Key "title"}}{{$ne.Value}}{{end}}{{end}}',
           image: require('../components/{{$ie.ProjectFeaturesInstallName}}/{{range $pi,$ne:=$ie.ProjectFeaturesConfig.Data.Values}}{{if eq $ne.Key "iconImage"}}{{$ne.Value}}{{end}}{{end}}'),
           onClick: function() {
-            self.$router.push({ path: '{{range $pi,$ne:=$ie.ProjectFeaturesConfig.Data.Values}}{{if eq $ne.Key "routePath"}}{{$ne.Value}}{{end}}{{end}}', replace: true });
+            self.$router.replace('{{range $pi,$ne:=$ie.ProjectFeaturesConfig.Data.Values}}{{if eq $ne.Key "routePath"}}{{$ne.Value}}{{end}}{{end}}');
           },
         },
         {{end}}{{end}}{{end}}
@@ -190,10 +167,6 @@ export default {
       }
     }
     this.splitFeatures = splitFeatures;
-    this.loadBanner();
-    this.loadWeather();
-    this.loadArticles();
-    console.log('this.apiHost', this.apiHost);
   },
   methods: {
     loadWeather() {
@@ -363,7 +336,7 @@ export default {
   width: 100%;
   height: 38em;
   top: 0;
-  background: url('../{{.InstallDir}}/{{range $i,$e:=.Config.Data.Values}}{{if eq $e.Key "homeBg"}}{{ $e.Value }}{{ end }}{{ end }}') no-repeat;
+  background: url('../{{.InstallDir}}/{{.DataValues.homeBg}}') no-repeat;
   background-size: cover;
 }
 .transparentBlack {

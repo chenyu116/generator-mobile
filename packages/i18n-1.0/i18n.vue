@@ -1,5 +1,5 @@
 <template>
-  <q-btn icon="language" dense="" unelevated>
+  <q-btn icon="language" :label="localeName" dense="" unelevated>
     <q-menu anchor="bottom left" self="top left" auto-close="">
       <template v-for="(item, index) in $i18n.messages">
         <q-item :key="index" clickable="" @click="changeLanguage(index)">
@@ -15,7 +15,12 @@ export default {
   data() {
     return {};
   },
-  mounted() {},
+  computed: {
+    localeName() {
+      const name = this.$i18n ? this.$i18n.locale : 'zh_CN';
+      return this.$t(name);
+    },
+  },
   methods: {
     changeLanguage(lang) {
       console.log(lang, this.$i18n.locale);

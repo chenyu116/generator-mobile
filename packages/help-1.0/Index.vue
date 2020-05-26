@@ -1,8 +1,27 @@
 <template>
   <q-layout view="lHh Lpr lFf" class="bg-white">
-    <HeaderWithBack icon="{{range $i,$e:=.Config.Data.Values}}{{if eq $e.Key "icon"}}{{$e.Value}}{{end}}{{end}}" title="{{range $i,$e:=.Config.Data.Values}}{{if eq $e.Key "title"}}{{$e.Value}}{{end}}{{end}}"/>
+    <HeaderWithBack title="{{.DataValues.title}}" icon="{{.DataValues.icon}}" />
     <q-page-container>
-      <q-page></q-page>
+      <q-page>
+        <template v-for="(item, index) in list">
+          <q-separator v-if="index > 0" :key="`separator-${index}`" inset="" />
+          <q-item
+            :key="`item-${index}`"
+            v-ripple
+            v-viewer
+            @click.native="href(item.href)"
+          >
+            <q-item-section>{{print "{{ item.text }}"}}</q-item-section>
+            <q-space />
+            <q-item-section thumbnail="" style="padding-right:16px">
+              <img v-if="item.src" :src="item.src" class="item-qrcode" />
+              <q-item-label v-if="item.sub"
+                >{{print "{{ item.sub }}"}}</q-item-label
+              >
+            </q-item-section>
+          </q-item>
+        </template>
+      </q-page>
     </q-page-container>
   </q-layout>
 </template>
@@ -17,15 +36,17 @@ export default {
           text: '广州越秀发布',
           icon: 'fa-comments',
           color: 'indigo',
+          href: '',
           sub: '',
-          qrcode: 'project/145/yuexiufabu.png',
+          src: 'https://o.signp.cn/project/145/yuexiufabu.png',
         },
         {
           text: 'wechatNumber',
           icon: 'fa-comments',
           color: 'indigo',
+          href: '',
           sub: '广州越秀文体',
-          qrcode: 'project/145/wechatQrcode.png',
+          src: 'https://o.signp.cn/project/145/wechatQrcode.png',
         },
         {
           text: 'travelAdvisory',
@@ -73,6 +94,18 @@ export default {
     };
   },
   mounted() {},
-  methods: {},
+  methods: {
+    href(href) {
+      if (href) {
+        window.location.href = href;
+      }
+    },
+  },
 };
 </script>
+<style scoped>
+.item-qrcode {
+  max-width: 40px;
+  max-height: 40px;
+}
+</style>

@@ -72,6 +72,7 @@ type paramsTemplateParse struct {
 	ComponentHash string
 	InstallDir    string
 	Config        featureVersionConfig
+	DataValues map[string]interface{}
 }
 
 type paramsUploadFile struct {
