@@ -1,14 +1,9 @@
 const routes = [
-  {
-    path: '/',
-    replace: true,
-    component: () => import('{{.EntranceName}}'),
-  },
-  {{range $i,$e:=.Routes}}
+  {{range $i,$e:=.}}
   {
       path: '{{$e.Path}}',
       replace: true,
-      component: () => import('{{.Page}}'),
+      component: () => import('../{{.Page}}'),
     },
   {{end}}
 ];

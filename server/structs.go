@@ -1,5 +1,7 @@
 package server
 
+import pb "github.com/chenyu116/generator-mobile/proto"
+
 type RequestInt32ProjectId struct {
 	ProjectId int32 `form:"projectId" binding:"required" json:"projectId"`
 }
@@ -65,17 +67,22 @@ type paramsRoutesJsRoutesParam struct {
 }
 type paramsRoutesJs struct {
 	EntranceName string
-	Routes       []paramsRoutesJsRoutesParam
+	Routes       map[string]paramsRoutesJsRoutesParam
 }
 
 type paramsTemplateParse struct {
 	ComponentHash string
 	InstallDir    string
 	Config        featureVersionConfig
-	DataValues map[string]interface{}
+	DataValues    map[string]interface{}
 }
 
 type paramsUploadFile struct {
 	Dst  string
 	File string
+}
+
+type projectFeature struct {
+	pb.ProjectFeatureAll
+	featureVersionConfig
 }

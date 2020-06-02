@@ -70,6 +70,7 @@ func (s *Server) Start() {
 	v1.GET("/feature", feature)
 	v1.POST("/install", install)
 	v1.POST("/upload", upload)
+	v1.POST("/build", build)
 
 	log.Infof("Server Started! Addr: \"%s\"", cf.Serve.HostPort)
 

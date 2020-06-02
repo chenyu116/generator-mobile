@@ -12,9 +12,6 @@
 <script>
 import { QSpinnerGears } from 'quasar';
 export default {
-  data() {
-    return {};
-  },
   computed: {
     localeName() {
       const name = this.$i18n ? this.$i18n.locale : 'zh_CN';
