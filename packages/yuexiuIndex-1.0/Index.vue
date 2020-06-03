@@ -13,8 +13,7 @@
           />{{print "{{$t($store.state.global.startPointInfo.name)}}"}}</q-toolbar-title
         >
       </q-toolbar>
-      {{range $i,$e:=.Config.Components}}{{if eq $e.Key "language"}}{{range $ni,$ne:=$e.Values}}
-      <{{$ne.ComponentHash}} />{{end}}{{end}}{{end}}
+      <i18n v-if="hasI18n" />
     </q-header>
     <q-page-container class="bg">
       <div class="row featureRow">
@@ -104,38 +103,21 @@
 </template>
 
 <script>
-{{range $i,$e:=.Config.Components}}{{if eq $e.Key "language"}}{{range $ni,$ne:=$e.Values}}
-import |{{$ne.ComponentHash}}| from '../components/{{$ne.ProjectFeaturesInstallName}}/Index.vue';{{end}}{{end}}{{end}}
 {{range $i,$e:=.Config.Components}}{{if eq $e.Key "blocks"}}{{range $ni,$ne:=$e.Values}}
-import |{{$ne.ComponentHash}}| from '../components/{{$ne.ProjectFeaturesInstallName}}/Index.vue';{{end}}{{end}}{{end}}
-import 'swiper/css/swiper.css';
+import |{{$ne.ComponentHash}}| from '../{{$ne.ProjectFeaturesInstallName}}/Index.vue';{{end}}{{end}}{{end}}
 
-import { Swiper, SwiperSlide } from 'vue-awesome-swiper';
 export default {
   name: 'Index',
-  components: { {{range $i,$e:=.Config.Components}}{{if eq $e.Key "blocks"}}{{range $ni,$ne:=$e.Values}}|{{$ne.ComponentHash}}|,{{end}}{{end}}{{end}}Swiper, SwiperSlide },
+  components: { {{range $i,$e:=.Config.Components}}{{if eq $e.Key "blocks"}}{{range $ni,$ne:=$e.Values}}|{{$ne.ComponentHash}}|,{{end}}{{end}}{{end}} },
   data() {
     const self = this;
     return {
-      banner: [],
-      swiperOption: {
-        slidesPerView: 3,
-        spaceBetween: 40,
-        freeMode: true,
-        pagination: {
-          el: '.swiper-pagination',
-          clickable: true,
-        },
-      },
-      bannerType: 'round',
-      weatherString: '',
       splitFeatures: [],
-      artilces: [],
       features: [
         {{range $i,$e:=.Config.Components}}{{if eq $e.Key "nav"}}{{range $ni,$ie:=$e.Values}}
         {
           name: '{{range $pi,$ne:=$ie.ProjectFeaturesConfig.Data.Values}}{{if eq $ne.Key "title"}}{{$ne.Value}}{{end}}{{end}}',
-          image: require('../components/{{$ie.ProjectFeaturesInstallName}}/{{range $pi,$ne:=$ie.ProjectFeaturesConfig.Data.Values}}{{if eq $ne.Key "iconImage"}}{{$ne.Value}}{{end}}{{end}}'),
+          image: require('../{{$ie.ProjectFeaturesInstallName}}/{{range $pi,$ne:=$ie.ProjectFeaturesConfig.Data.Values}}{{if eq $ne.Key "iconImage"}}{{$ne.Value}}{{end}}{{end}}'),
           onClick: function() {
             self.$router.replace('{{range $pi,$ne:=$ie.ProjectFeaturesConfig.Data.Values}}{{if eq $ne.Key "routePath"}}{{$ne.Value}}{{end}}{{end}}');
           },
@@ -143,7 +125,7 @@ export default {
         {{end}}{{end}}{{end}}
       ],
       countsPerRow: 4,
-      hasI18n: self.$i18n !== undefined,
+      hasI18n: Object.keys(self.$i18n.messages).length > 1,
     };
   },
   computed: {
@@ -336,7 +318,8 @@ export default {
   width: 100%;
   height: 38em;
   top: 0;
-  background: url('../{{.InstallDir}}/{{.DataValues.homeBg}}') no-repeat;
+  {{if .DataValues.homeBg}}
+  background: url('../{{.InstallDir}}/{{.DataValues.homeBg}}') no-repeat;{{end}}
   background-size: cover;
 }
 .transparentBlack {

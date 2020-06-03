@@ -93,7 +93,9 @@ export default {
       ],
     };
   },
-  mounted() {},
+  beforeCreate() {
+      this.$q.loading.hide();
+    },
   methods: {
     href(href) {
       if (href) {

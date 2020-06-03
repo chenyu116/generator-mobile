@@ -160,19 +160,21 @@ func projectInit(c *gin.Context) {
 		return
 	}
 	quasarDir := "/home/roger/workspace/quasar"
-	baseDir := "./projects/" + req.ProjectId + "/"
+	baseDir := "./projects/" + req.ProjectId
 	var cmds []*exec.Cmd
 
 	if _, err := os.Stat(baseDir); os.IsNotExist(err) {
-		cmds = append(cmds, exec.Command("mkdir", baseDir))
+		cmds = append(cmds, exec.Command("mkdir", "-p", baseDir+"/src/boot"))
+		cmds = append(cmds, exec.Command("mkdir", "-p", baseDir+"/src/components"))
+		cmds = append(cmds, exec.Command("mkdir", "-p", baseDir+"/src/pages"))
 	}
-	copyFiles := []string{"src", ".quasar", "quasar.conf.js.tmpl"}
+	copyFiles := []string{"src/assets", "src/css", "src/plugins", "src/router", "src/statics", "/src/store", "/src/App.vue", "/src/index.template.html", "src/boot/i18n", "src/boot/iBeacon", "src/boot/preload", "src/boot/process", "src/boot/mapUtil", "src/boot/weixinJssdk", "src/components/HeaderWithBack.vue", "src/pages/Error404.vue", ".quasar", "quasar.conf.js"}
 	for _, v := range copyFiles {
 		if _, err := os.Stat(baseDir + "/" + v); os.IsNotExist(err) {
-			cmds = append(cmds, exec.Command("cp", "-r", quasarDir+"/"+v, baseDir))
+			cmds = append(cmds, exec.Command("cp", "-r", quasarDir+"/"+v, baseDir+"/"+v))
 		}
 	}
-	linkFiles := []string{"node_modules", "babel.config.js", "jsconfig.json", "package.json", "yarn.lock", ".eslintignore", ".eslintrc.js", ".gitignore", ".postcssrc.js"}
+	linkFiles := []string{"node_modules", "babel.config.js", "jsconfig.json", "package.json", "yarn.lock", ".eslintignore", ".eslintrc.js", ".postcssrc.js"}
 	for _, v := range linkFiles {
 		if _, err := os.Stat(baseDir + "/" + v); os.IsNotExist(err) {
 			cmds = append(cmds, exec.Command("ln", "-s", quasarDir+"/"+v, baseDir))
@@ -318,7 +320,7 @@ func build(c *gin.Context) {
 	//	c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
 	//	return
 	//}
-	projectDir := fmt.Sprintf("./projects/%d", req.ProjectId)
+	projectDir := fmt.Sprintf("/home/roger/workspace/generator-mobile/projects/%d", req.ProjectId)
 	if _, err := os.Stat(projectDir); os.IsNotExist(err) {
 		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError("project not initialized"))
 		return
@@ -372,14 +374,9 @@ func build(c *gin.Context) {
 		//}
 
 		if len(cmds) > 0 {
-			_, stderr, err := utils.Pipeline(cmds...)
+			_, _, err = utils.Pipeline(cmds...)
 			if err != nil && !strings.HasPrefix(err.Error(), "exit") {
 				c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
-				return
-			}
-
-			if len(stderr) > 0 {
-				c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(string(stderr)))
 				return
 			}
 		}
@@ -411,16 +408,12 @@ func build(c *gin.Context) {
 			}
 		}
 		if len(cmds) > 0 {
-			_, stderr, err := utils.Pipeline(cmds...)
+			_, _, err = utils.Pipeline(cmds...)
 			if err != nil && !strings.HasPrefix(err.Error(), "exit") {
 				c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
 				return
 			}
 
-			if len(stderr) > 0 {
-				c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(string(stderr)))
-				return
-			}
 			cmds = cmds[:0]
 		}
 
@@ -483,22 +476,10 @@ func build(c *gin.Context) {
 					c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
 					return
 				}
-				cmds = append(cmds, exec.Command("prettier", "--config", projectDir+"/package.json", "--write", installDir+"/"+file))
+				cmds = append(cmds, exec.Command("/home/roger/.yarn/bin/prettier-eslint", "--config", projectDir+"/package.json", "--write", installDir+"/"+file))
 			}
 		}
 
-		if len(cmds) > 0 {
-			_, stderr, err := utils.Pipeline(cmds...)
-			if err != nil && !strings.HasPrefix(err.Error(), "exit") {
-				c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
-				return
-			}
-
-			if len(stderr) > 0 {
-				c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(string(stderr)))
-				return
-			}
-		}
 		if feature.FeatureOnboot {
 			bootString = append(bootString, `'`+feature.GetProjectFeaturesInstallName()+`'`)
 		}
@@ -526,7 +507,26 @@ func build(c *gin.Context) {
 				}
 			}
 		}
+		for _, cf := range projectConfig.Data.Values {
+			if cf.FormType == "upload" {
+				uploadFile, ok := cf.Value.(string)
+				if !ok || uploadFile == "" {
+					continue
+				}
+				if _, err := os.Stat(installDir + "/" + uploadFile); os.IsNotExist(err) {
+					cmds = append(cmds, exec.Command("mv", "./tmp/"+uploadFile, installDir+"/"+uploadFile))
+				}
+			}
+		}
+		if len(cmds) > 0 {
+			_, _, err := utils.Pipeline(cmds...)
+			if err != nil && !strings.HasPrefix(err.Error(), "exit") {
+				c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+				return
+			}
+		}
 	}
+	cmds = cmds[:0]
 
 	quasarT, err := template.ParseFiles("./packages/quasar.conf.js.tmpl")
 	if err != nil {
@@ -546,6 +546,7 @@ func build(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
 		return
 	}
+	cmds = append(cmds, exec.Command("/home/roger/.yarn/bin/prettier-eslint", "--config", projectDir+"/package.json", "--write", projectDir+"/quasar.conf.js"))
 
 	routesJsTemp, err := template.ParseFiles("./packages/routes.js.tmpl")
 	if err != nil {
@@ -563,107 +564,15 @@ func build(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
 		return
 	}
+	cmds = append(cmds, exec.Command("/home/roger/.yarn/bin/prettier-eslint", "--config", projectDir+"/package.json", "--write", projectDir+"/src/router/routes.js"))
+	if len(cmds) > 0 {
+		_, _, err = utils.Pipeline(cmds...)
+		if err != nil && !strings.HasPrefix(err.Error(), "exit") {
+			c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+			return
+		}
 
-	//cmds = append(cmds, exec.Command("unzip", "-o", fileName, "-d", featureDir))
-
-	//var uploadFiles []paramsUploadFile
-	//writeFiles := make(map[string]string)
-	//buf := new(bytes.Buffer)
-	//
-	//dataValues := make(map[string]interface{})
-	//for _, v := range req.Version.FeatureVersionConfig.Data.Values {
-	//	dataValues[v.Key] = v.Value
-	//}
-	//newParamsTemplateParse := paramsTemplateParse{
-	//	InstallDir: strings.Replace(installDir, projectDir+"/src/", "", 1),
-	//	Config:     req.Version.FeatureVersionConfig,
-	//	DataValues: dataValues,
-	//}
-	//// parse Data
-	//if req.Version.FeatureVersionConfig.Data.Template != "" {
-	//	t, err := template.ParseFiles(packageDir + "/" + req.Version.FeatureVersionConfig.Data.Template)
-	//	if err != nil {
-	//		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
-	//		return
-	//	}
-	//	//fmt.Println("newParamsTemplateParse", newParamsTemplateParse)
-	//
-	//	err = t.Execute(buf, newParamsTemplateParse)
-	//	if err != nil {
-	//		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
-	//		return
-	//	}
-	//	targetString := strings.Replace(buf.String(), "&#34;", `"`, -1)
-	//	targetString = strings.Replace(targetString, "&#39;", `'`, -1)
-	//	targetString = strings.Replace(targetString, "&lt;", `<`, -1)
-	//	targetString = strings.Replace(targetString, `|"`, "", -1)
-	//	targetString = strings.Replace(targetString, `"|`, "", -1)
-	//	writeFiles[req.Version.FeatureVersionConfig.Data.Template] = targetString
-	//
-	//	for _, value := range req.Version.FeatureVersionConfig.Data.Values {
-	//		if value.FormType == "upload" {
-	//			uploadPath, ok := value.Value.(string)
-	//			if ok && uploadPath != "" && len(uploadPath) > 32 {
-	//				fmt.Printf("upload %+v", uploadPath)
-	//				uploadFiles = append(uploadFiles, paramsUploadFile{
-	//					Dst:  installDir,
-	//					File: uploadPath,
-	//				})
-	//			}
-	//		}
-	//	}
-	//}
-	//for _, v := range req.Version.FeatureVersionConfig.Components {
-	//	if _, ok := writeFiles[v.Template]; !ok {
-	//		t, err := template.ParseFiles(packageDir + "/" + v.Template)
-	//		if err != nil {
-	//			continue
-	//			//c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
-	//			//return
-	//		}
-	//		//fmt.Println("newParamsTemplateParse", newParamsTemplateParse)
-	//		buf.Reset()
-	//		err = t.Execute(buf, newParamsTemplateParse)
-	//		if err != nil {
-	//			c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
-	//			return
-	//		}
-	//		targetString := strings.Replace(buf.String(), "&#34;", `"`, -1)
-	//		targetString = strings.Replace(targetString, "&#39;", `'`, -1)
-	//		writeFiles[req.Version.FeatureVersionConfig.Data.Template] = targetString
-	//	}
-	//}
-	//
-	//configByte, err := json.Marshal(req.Version.FeatureVersionConfig)
-	//if err != nil {
-	//	c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
-	//	return
-	//}
-	//
-	//cmds = cmds[:0]
-	//if len(writeFiles) > 0 {
-	//	for file, s := range writeFiles {
-	//		err := ioutil.WriteFile(installDir+"/"+file, []byte(s), os.ModePerm)
-	//		if err != nil {
-	//			c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
-	//			return
-	//		}
-	//		cmds = append(cmds, exec.Command("prettier", "--config", projectDir+"/package.json", "--write", installDir+"/"+file))
-	//	}
-	//}
-	//
-	//if len(cmds) > 0 {
-	//	_, stderr, err := utils.Pipeline(cmds...)
-	//	if err != nil && !strings.HasPrefix(err.Error(), "exit") {
-	//		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
-	//		return
-	//	}
-	//
-	//	if len(stderr) > 0 {
-	//		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(string(stderr)))
-	//		return
-	//	}
-	//}
+	}
 	//
 	//if featureDetails.Feature.FeatureOnboot {
 	//	bootString := []string{}

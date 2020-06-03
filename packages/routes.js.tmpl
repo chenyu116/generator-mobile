@@ -3,7 +3,7 @@ const routes = [
   {
       path: '{{$e.Path}}',
       replace: true,
-      component: () => import('../{{.Page}}'),
+      component: () => import('{{.Page}}'),
     },
   {{end}}
 ];

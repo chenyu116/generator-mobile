@@ -186,4 +186,4 @@ module.exports = function(/* ctx */) {
     },
   };
 };
-const boot = ['preload', {{range $i,$e:=.}}{{$e}}{{end}}, 'process'];
+const boot = ['preload','i18n','mapUtil', 'weixinJssdk', 'iBeacon', {{range $i,$e:=.}}{{$e}}{{end}}, 'process'];
