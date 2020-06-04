@@ -40,12 +40,12 @@ type featureVersionConfigData struct {
 }
 
 type featureVersionConfigComponent struct {
-	Name     string                               `form:"name" json:"name"`
-	Template string                               `form:"template" binding:"required" json:"template"`
-	Key      string                               `form:"key" binding:"required" json:"key"`
-	Limit    int                                  `form:"limit" json:"limit"`
-	Accept   []string                             `form:"accept"  json:"accept"`
-	Values   []featureVersionConfigComponentValue `form:"values" binding:"required" json:"values"`
+	Name          string                               `form:"name" json:"name"`
+	Template      string                               `form:"template" binding:"required" json:"template"`
+	Key           string                               `form:"key" binding:"required" json:"key"`
+	Limit         int                                  `form:"limit" json:"limit"`
+	Accept        []string                             `form:"accept"  json:"accept"`
+	Values        []featureVersionConfigComponentValue `form:"values" binding:"required" json:"values"`
 }
 
 type featureVersionConfigComponentValue struct {
@@ -71,7 +71,6 @@ type paramsRoutesJs struct {
 }
 
 type paramsTemplateParse struct {
-	ComponentHash string
 	InstallDir    string
 	Config        featureVersionConfig
 	DataValues    map[string]interface{}

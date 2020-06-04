@@ -356,6 +356,13 @@ func build(c *gin.Context) {
 			return
 		}
 
+		for cmpK ,cmp := range projectConfig.Components{
+			for cmpvK , cmpv := range cmp.Values{
+				hashIndex := strings.LastIndex(cmpv.ProjectFeaturesInstallName , "-")
+				projectConfig.Components[cmpK].Values[cmpvK].ComponentHash = cmpv.ProjectFeaturesInstallName[hashIndex:]
+			}
+		}
+
 		if feature.FeatureOnboot {
 			installDir = fmt.Sprintf("%s/src/boot/%s", projectDir, feature.ProjectFeaturesInstallName)
 		} else {
@@ -403,9 +410,7 @@ func build(c *gin.Context) {
 			if strings.HasSuffix(f.Name(), ".tmpl") {
 				continue
 			}
-			if _, err := os.Stat(installDir + "/" + f.Name()); os.IsNotExist(err) {
-				cmds = append(cmds, exec.Command("cp", packageDir+"/"+f.Name(), installDir))
-			}
+			cmds = append(cmds, exec.Command("cp", packageDir+"/"+f.Name(), installDir))
 		}
 		if len(cmds) > 0 {
 			_, _, err = utils.Pipeline(cmds...)

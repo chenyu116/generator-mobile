@@ -49,7 +49,7 @@ module.exports = function(/* ctx */) {
       directives: [],
 
       // Quasar plugins
-      plugins: ['LocalStorage', 'Loading'],
+      plugins: ['LocalStorage', 'Loading', 'Dialog', 'Notify'],
     },
 
     // https://quasar.dev/quasar-cli/cli-documentation/supporting-ie
@@ -186,4 +186,4 @@ module.exports = function(/* ctx */) {
     },
   };
 };
-const boot = ['preload','i18n','mapUtil', 'weixinJssdk', 'iBeacon', {{range $i,$e:=.}}{{$e}}{{end}}, 'process'];
+const boot = ['preload',{{range $i,$e:=.}}{{$e}},{{end}}'i18n','mapUtil', 'weixinJssdk', 'iBeacon', 'process'];
