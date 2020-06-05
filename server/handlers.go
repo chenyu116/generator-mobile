@@ -299,6 +299,48 @@ func install(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
 		return
 	}
+	c.AbortWithStatus(http.StatusCreated)
+}
+func edit(c *gin.Context) {
+	var req RequestPostEdit
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+		return
+	}
+	if req.ProjectFeaturesId <= 0 {
+		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError("invalid params"))
+		return
+	}
+	if req.ProjectId <= 0 {
+		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError("invalid params"))
+		return
+	}
+
+	dbServerConn, ok := utils.DbServerGrpcConn.Get().(*grpc.ClientConn)
+	if !ok {
+		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError("GRPC connection lost"))
+		return
+	}
+	defer utils.DbServerGrpcConn.Put(dbServerConn)
+	client := pb.NewApiClient(dbServerConn)
+
+	configByte, err := json.Marshal(req.Version.FeatureVersionConfig)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+		return
+	}
+
+	_, err = client.UpdateProjectFeature(context.Background(), &pb.UpdateProjectFeatureRequest{
+		ProjectFeaturesId:     req.ProjectFeaturesId,
+		ProjectFeaturesType:   req.Type,
+		ProjectFeaturesConfig: string(configByte),
+		FeatureVersionId:      req.Version.FeatureVersionId,
+		ProjectFeaturesName:   req.ProjectFeaturesName,
+	})
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+		return
+	}
 	c.AbortWithStatus(http.StatusNoContent)
 }
 func build(c *gin.Context) {
@@ -355,11 +397,23 @@ func build(c *gin.Context) {
 			c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
 			return
 		}
-
-		for cmpK ,cmp := range projectConfig.Components{
-			for cmpvK , cmpv := range cmp.Values{
-				hashIndex := strings.LastIndex(cmpv.ProjectFeaturesInstallName , "-")
-				projectConfig.Components[cmpK].Values[cmpvK].ComponentHash = cmpv.ProjectFeaturesInstallName[hashIndex:]
+		for cmpK, cmp := range projectConfig.Components {
+			for cmpvK, cmpv := range cmp.Values {
+				for _, f := range projectFeatures.Features {
+					if cmpv.ProjectFeaturesId == f.ProjectFeaturesId {
+						var fProjectConfig featureVersionConfig
+						err = json.Unmarshal([]byte(f.ProjectFeaturesConfig), &fProjectConfig)
+						if err != nil {
+							c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+							return
+						}
+						projectConfig.Components[cmpK].Values[cmpvK].ProjectFeaturesConfig = fProjectConfig
+						break
+					}
+				}
+				hashIndex := strings.LastIndex(cmpv.ProjectFeaturesInstallName, "-")
+				projectConfig.Components[cmpK].Values[cmpvK].ComponentHash = strings.Replace(cmpv.ProjectFeaturesInstallName[hashIndex:], "-", "C", -1)
+				fmt.Println("projectConfig.Components[cmpK].Values[cmpvK].ComponentHash", projectConfig.Components[cmpK].Values[cmpvK].ComponentHash)
 			}
 		}
 
@@ -705,5 +759,5 @@ func build(c *gin.Context) {
 	//	c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
 	//	return
 	//}
-	c.AbortWithStatus(http.StatusNoContent)
+	c.AbortWithStatus(http.StatusCreated)
 }

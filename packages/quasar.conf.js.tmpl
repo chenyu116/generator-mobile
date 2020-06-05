@@ -12,7 +12,7 @@ module.exports = function(/* ctx */) {
     // app boot file (/src/boot)
     // --> boot files are part of "main.js"
     // https://quasar.dev/quasar-cli/cli-documentation/boot-files
-    boot: boot,
+    boot: ['preload',{{range $i,$e:=.}}{{$e}},{{end}}'i18n','mapUtil', 'weixinJssdk', 'iBeacon', 'process'],
 
     // https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-css
     css: ['app.scss'],
@@ -45,7 +45,7 @@ module.exports = function(/* ctx */) {
       //            (not treeshaking Quasar; biggest bundle size; convenient)
       all: 'auto',
 
-      components: ['QResizeObserver', 'QParallax', 'QFooter', 'QTabs', 'QTab'],
+      components: [],
       directives: [],
 
       // Quasar plugins
@@ -64,7 +64,7 @@ module.exports = function(/* ctx */) {
 
       // rtl: false, // https://quasar.dev/options/rtl-support
       showProgress: true,
-      gzip: true,
+      gzip: false,
       analyze: false,
 
       // Options below are automatically set depending on the env, set them if you want to override
@@ -186,4 +186,3 @@ module.exports = function(/* ctx */) {
     },
   };
 };
-const boot = ['preload',{{range $i,$e:=.}}{{$e}},{{end}}'i18n','mapUtil', 'weixinJssdk', 'iBeacon', 'process'];

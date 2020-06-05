@@ -12,8 +12,10 @@
             left=""
           />{{print "{{$t($store.state.global.startPointInfo.name)}}"}}</q-toolbar-title
         >
+        <q-space />
+        <i18n v-if="hasI18n" />
       </q-toolbar>
-      <i18n v-if="hasI18n" />
+
     </q-header>
     <q-page-container class="bg">
       <div class="row featureRow">
@@ -47,6 +49,7 @@
                     :style="`width:${tabWidth}px;`"
                     @click="featureClick(item)"
                     ><q-img
+                      v-if="item.image"
                       :key="`tab-0-image-${itemIndex}`"
                       :src="item.image"
                       style="width:60px;height:40px"
@@ -73,7 +76,7 @@
             <template v-for="(item, itemIndex) in splitFeatures[1]">
               <q-separator
                 v-if="itemIndex > 0"
-                :key="`separator-0-${itemIndex}`"
+                :key="`separator-1-${itemIndex}`"
                 vertical
                 color="grey"
               />
@@ -84,7 +87,8 @@
                 :style="`width:${tabWidth}px;`"
                 @click="featureClick(item)"
                 ><q-img
-                  :key="`tab-0-image-${itemIndex}`"
+                  v-if="item.image"
+                  :key="`tab-1-image-${itemIndex}`"
                   :src="item.image"
                   style="width:60px;height:40px"
                 />
@@ -116,9 +120,9 @@ export default {
       features: [
         {{range $i,$e:=.Config.Components}}{{if eq $e.Key "nav"}}{{range $ni,$ie:=$e.Values}}
         {
-          name: '{{range $pi,$ne:=$ie.ProjectFeaturesConfig.Data.Values}}{{if eq $ne.Key "title"}}{{$ne.Value}}{{end}}{{end}}',{{range $pi,$ne:=$ie.ProjectFeaturesConfig.Data.Values}}{{if eq $ne.Key "iconImage"}}
-          image: require('../{{$ie.ProjectFeaturesInstallName}}/{{$ne.Value}}'),{{end}}{{if eq $ne.Key "icon"}}
-          icon: '{{$ne.Value}}',{{end}}{{end}}
+          name: '{{range $pi,$ne:=$ie.ProjectFeaturesConfig.Data.Values}}{{if eq $ne.Key "title"}}{{$ne.Value}}{{end}}{{end}}',{{range $pi,$ne:=$ie.ProjectFeaturesConfig.Data.Values}}{{if eq $ne.Key "iconImage"}}{{if $ne.Value}}
+          image: require('../{{$ie.ProjectFeaturesInstallName}}/{{$ne.Value}}'),{{end}}{{end}}{{if eq $ne.Key "icon"}}{{if $ne.Value}}
+          icon: '{{$ne.Value}}',{{end}}{{end}}{{end}}
           onClick: function() {
             self.$router.replace('{{range $pi,$ne:=$ie.ProjectFeaturesConfig.Data.Values}}{{if eq $ne.Key "routePath"}}{{$ne.Value}}{{end}}{{end}}');
           },

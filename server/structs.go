@@ -14,8 +14,20 @@ type RequestInt32FeatureId struct {
 	FeatureId int32 `form:"featureId" binding:"required" json:"featureId"`
 }
 
+type RequestInt32ProjectFeaturesId struct {
+	ProjectFeaturesId int32 `form:"projectFeaturesId" binding:"required" json:"projectFeaturesId"`
+}
+
 type RequestPostInstall struct {
 	RequestInt32FeatureId
+	RequestInt32ProjectId
+	Version             featureVersion `form:"version" binding:"required" json:"version"`
+	Type                string         `form:"type" binding:"required" json:"type"`
+	ProjectFeaturesName string         `form:"projectFeaturesName" json:"projectFeaturesName"`
+}
+
+type RequestPostEdit struct {
+	RequestInt32ProjectFeaturesId
 	RequestInt32ProjectId
 	Version             featureVersion `form:"version" binding:"required" json:"version"`
 	Type                string         `form:"type" binding:"required" json:"type"`

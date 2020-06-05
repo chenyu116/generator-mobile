@@ -37,7 +37,7 @@ export default {
     loadWeather() {
       const self = this;
       const weatherTag = 'weather-' + this.locale;
-      const weather = JSON.parse(this.$storage.get(weatherTag));
+      const weather = this.$storage.get(weatherTag);
       const nowTime = new Date().getTime();
       if (!weather || weather.timestamp < nowTime) {
         this.$http
@@ -51,13 +51,10 @@ export default {
             if (resp.status === 200) {
               const timestamp = nowTime + 1800 * 1000;
               const body = JSON.parse(resp.body);
-              self.$storage.set(
-                weatherTag,
-                JSON.stringify({
-                  timestamp: timestamp,
-                  data: body,
-                }),
-              );
+              self.$storage.set(weatherTag, {
+                timestamp: timestamp,
+                data: body,
+              });
               self.parseWeather(body);
             }
           });
@@ -66,7 +63,7 @@ export default {
       }
     },
     parseWeather(w) {
-      if (w.HeWeather6 && w.HeWeather6.length > 0 && w.HeWeather6[0].now) {
+      if (w && w.HeWeather6 && w.HeWeather6.length > 0 && w.HeWeather6[0].now) {
         const now = w.HeWeather6[0].now;
         const wa = [];
         wa.push(now.cond_txt);

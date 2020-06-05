@@ -158,7 +158,7 @@ export default {
   },
   mounted() {
     this.$q.loading.hide();
-    if (!this.$store.state.global.routeDest && !this.$route.params.categoryID) {
+    if (!this.$store.state.global.routeDest && !this.$route.params.categoryId) {
       return this.$router.replace('/');
     }
     const map = new mapboxgl.Map({
@@ -237,7 +237,7 @@ export default {
             {
               projectID: self.$store.state.global.startPointInfo.project_id,
               pointID: self.$store.state.global.startPointInfo.id,
-              categoryID: self.$route.params.categoryID,
+              categoryID: self.$route.params.categoryId,
               refresh: 1,
             },
             { emulateJSON: true },
@@ -310,8 +310,8 @@ export default {
         .then(function() {
           self.currentMapId = self.$store.state.global.startPointInfo.map_id;
           if (
-            self.$route.params.categoryID &&
-            self.$route.params.categoryID > 0
+            self.$route.params.categoryId &&
+            self.$route.params.categoryId > 0
           ) {
             return self.loadCategoryRouteRemote();
           }
