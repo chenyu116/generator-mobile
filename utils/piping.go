@@ -2,6 +2,8 @@ package utils
 
 import (
 	"bytes"
+	"io"
+	"os"
 	"os/exec"
 )
 
@@ -52,4 +54,25 @@ func Pipeline(cmds ...*exec.Cmd) (pipeLineOutput, collectedStandardError []byte,
 
 	// Return the pipeline output and the collected standard error
 	return output.Bytes(), stderr.Bytes(), nil
+}
+
+func CopyAndCapture(w io.Writer, r io.Reader) ([]byte, error) {
+	var out []byte
+	buf := make([]byte, 1024, 1024)
+	for {
+		n, err := r.Read(buf[:])
+		if n > 0 {
+			d := buf[:n]
+			out = append(out, d...)
+			os.Stdout.Write(d)
+		}
+		if err != nil {
+			// Read returns io.EOF at the end of file, which is not an error for us
+			if err == io.EOF {
+				err = nil
+			}
+			return out, err
+		}
+	}
+	return nil, nil
 }

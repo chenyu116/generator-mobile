@@ -2,6 +2,16 @@ dbServer:
   hostPort: "192.168.1.232:5050"
 serve:
   hostPort: ":5022"
+rabbitmq:
+  hostPort: "192.168.1.232:30418"
+  username: "websocket"
+  password: "cl87654321!"
+  vHost: "generator-backend"
+  prefetch: 30
+  exchanges:
+    - name: "websocketServer-direct"
+      kind: "direct"
+  queuePrefix: "websocketServer"
 common:
   connectTimeout: 10
   staticPath: static

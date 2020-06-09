@@ -66,10 +66,21 @@ type DBConfig struct {
 	HostPort string `mapstructure:"hostPort"`
 }
 
+type RabbitmqConfig struct {
+	HostPort    string              `mapstructure:"hostPort"`
+	Username    string              `mapstructure:"username"`
+	Password    string              `mapstructure:"password"`
+	Prefetch    int                 `mapstructure:"prefetch"`
+	VHost       string              `mapstructure:"vHost"`
+	Exchanges   []map[string]string `mapstructure:"exchanges"`
+	QueuePrefix string              `mapstructure:"queuePrefix"`
+}
+
 type Config struct {
 	Serve    ServeConfig  `mapstructure:"serve"`
 	DbServer DBConfig     `mapstructure:"dbServer"`
 	Common   CommonConfig `mapstructure:"common"`
+	Rabbitmq  RabbitmqConfig  `mapstructure:"rabbitmq"`
 }
 
 func SetConfigPath(path string) {

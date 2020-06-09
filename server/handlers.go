@@ -1,7 +1,6 @@
 package server
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -9,14 +8,16 @@ import (
 	"github.com/chenyu116/generator-mobile/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/streadway/amqp"
 	"google.golang.org/grpc"
-	"html/template"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type result struct {
@@ -343,6 +344,13 @@ func edit(c *gin.Context) {
 	}
 	c.AbortWithStatus(http.StatusNoContent)
 }
+
+func sendMessage(str string) {
+	utils.RabbitMQ.Publish("websocketServer-fanout", "", amqp.Publishing{
+		AppId: "all",
+		Body:  []byte(str),
+	}, nil)
+}
 func build(c *gin.Context) {
 	var req RequestInt32ProjectId
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -362,275 +370,347 @@ func build(c *gin.Context) {
 	//	c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
 	//	return
 	//}
+	sendMessage("check project...")
 	projectDir := fmt.Sprintf("/home/roger/workspace/generator-mobile/projects/%d", req.ProjectId)
 	if _, err := os.Stat(projectDir); os.IsNotExist(err) {
 		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError("project not initialized"))
 		return
 	}
 
-	dbServerConn, ok := utils.DbServerGrpcConn.Get().(*grpc.ClientConn)
-	if !ok {
-		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError("GRPC connection lost"))
-		return
-	}
-	client := pb.NewApiClient(dbServerConn)
-	projectFeatures, err := client.ProjectFeaturesByProjectId(context.Background(), &pb.ProjectFeaturesByProjectIdRequest{
-		ProjectId: req.ProjectId,
-	})
+	sendMessage("check project ok")
+	//sendMessage("connect db server...")
+	//dbServerConn, ok := utils.DbServerGrpcConn.Get().(*grpc.ClientConn)
+	//if !ok {
+	//	c.AbortWithStatusJSON(http.StatusBadRequest, jsonError("GRPC connection lost"))
+	//	return
+	//}
+	//sendMessage("connect db server ok")
+	//sendMessage("request client.ProjectFeaturesByProjectId...")
+	//client := pb.NewApiClient(dbServerConn)
+	//projectFeatures, err := client.ProjectFeaturesByProjectId(context.Background(), &pb.ProjectFeaturesByProjectIdRequest{
+	//	ProjectId: req.ProjectId,
+	//})
+	//if err != nil {
+	//	utils.DbServerGrpcConn.Put(dbServerConn)
+	//	c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+	//	return
+	//}
+	//utils.DbServerGrpcConn.Put(dbServerConn)
+	//sendMessage("request client.ProjectFeaturesByProjectId ok")
+	//var cmds []*exec.Cmd
+	//var bootString []string
+	//routes := make(map[string]paramsRoutesJsRoutesParam)
+	//buf := new(bytes.Buffer)
+	//for _, feature := range projectFeatures.Features {
+	//	cmds = cmds[:0]
+	//	installDir := ""
+	//	var projectConfig featureVersionConfig
+	//	err = json.Unmarshal([]byte(feature.ProjectFeaturesConfig), &projectConfig)
+	//	if err != nil {
+	//		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+	//		return
+	//	}
+	//	for cmpK, cmp := range projectConfig.Components {
+	//		for cmpvK, cmpv := range cmp.Values {
+	//			for _, f := range projectFeatures.Features {
+	//				if cmpv.ProjectFeaturesId == f.ProjectFeaturesId {
+	//					var fProjectConfig featureVersionConfig
+	//					err = json.Unmarshal([]byte(f.ProjectFeaturesConfig), &fProjectConfig)
+	//					if err != nil {
+	//						c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+	//						return
+	//					}
+	//					projectConfig.Components[cmpK].Values[cmpvK].ProjectFeaturesConfig = fProjectConfig
+	//					break
+	//				}
+	//			}
+	//			hashIndex := strings.LastIndex(cmpv.ProjectFeaturesInstallName, "-")
+	//			projectConfig.Components[cmpK].Values[cmpvK].ComponentHash = strings.Replace(cmpv.ProjectFeaturesInstallName[hashIndex:], "-", "C", -1)
+	//			fmt.Println("projectConfig.Components[cmpK].Values[cmpvK].ComponentHash", projectConfig.Components[cmpK].Values[cmpvK].ComponentHash)
+	//			sendMessage(fmt.Sprintf("generate component hash \"%s\" %s", cmpv.ProjectFeaturesInstallName, projectConfig.Components[cmpK].Values[cmpvK].ComponentHash))
+	//		}
+	//	}
+	//	sendMessage(fmt.Sprintf("generate component \"%s\"", feature.ProjectFeaturesInstallName))
+	//	if feature.FeatureOnboot {
+	//		installDir = fmt.Sprintf("%s/src/boot/%s", projectDir, feature.ProjectFeaturesInstallName)
+	//	} else {
+	//		installDir = fmt.Sprintf("%s/src/components/%s", projectDir, feature.ProjectFeaturesInstallName)
+	//	}
+	//	if _, err := os.Stat(installDir); os.IsNotExist(err) {
+	//		cmds = append(cmds, exec.Command("mkdir", installDir))
+	//	}
+	//
+	//	//for _, v := range projectConfig.Data.Values {
+	//	//	if v.FormType == "upload" {
+	//	//		if _, err := os.Stat(installDir + "/" + v.Value.(string)); os.IsNotExist(err) {
+	//	//			cmds = append(cmds, exec.Command("cp", "./tmp/"+v.Value.(string), installDir))
+	//	//		}
+	//	//	}
+	//	//}
+	//
+	//	if len(cmds) > 0 {
+	//		_, _, err = utils.Pipeline(cmds...)
+	//		if err != nil && !strings.HasPrefix(err.Error(), "exit") {
+	//			c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+	//			return
+	//		}
+	//	}
+	//	cmds = cmds[:0]
+	//
+	//	if feature.ProjectFeaturesType == "click" {
+	//		continue
+	//	}
+	//
+	//	packageName := fmt.Sprintf("%s-%s", feature.FeatureName, feature.FeatureVersionName)
+	//	packageDir := fmt.Sprintf("./packages/%s", packageName)
+	//	if _, err := os.Stat(packageDir); os.IsNotExist(err) {
+	//		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError("package: \""+packageName+"\" not found"))
+	//		return
+	//	}
+	//
+	//	files, err := ioutil.ReadDir(packageDir)
+	//	if err != nil {
+	//		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+	//		return
+	//	}
+	//
+	//	for _, f := range files {
+	//		if strings.HasSuffix(f.Name(), ".tmpl") {
+	//			continue
+	//		}
+	//		cmds = append(cmds, exec.Command("cp", packageDir+"/"+f.Name(), installDir))
+	//	}
+	//	if len(cmds) > 0 {
+	//		_, _, err = utils.Pipeline(cmds...)
+	//		if err != nil && !strings.HasPrefix(err.Error(), "exit") {
+	//			c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+	//			return
+	//		}
+	//
+	//		cmds = cmds[:0]
+	//	}
+	//
+	//	writeFiles := make(map[string]string)
+	//	dataValues := make(map[string]interface{})
+	//	for _, v := range projectConfig.Data.Values {
+	//		dataValues[v.Key] = v.Value
+	//	}
+	//
+	//	newParamsTemplateParse := paramsTemplateParse{
+	//		InstallDir: strings.Replace(installDir, projectDir+"/src/", "", 1),
+	//		Config:     projectConfig,
+	//		DataValues: dataValues,
+	//	}
+	//	//fmt.Printf("%+v\n\n", newParamsTemplateParse)
+	//	if projectConfig.Data.Template != "" {
+	//		t, err := template.ParseFiles(packageDir + "/" + projectConfig.Data.Template)
+	//		if err != nil {
+	//			c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+	//			return
+	//		}
+	//		buf := new(bytes.Buffer)
+	//		err = t.Execute(buf, newParamsTemplateParse)
+	//		if err != nil {
+	//			c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+	//			return
+	//		}
+	//
+	//		targetString := strings.Replace(buf.String(), "&#34;", `"`, -1)
+	//		targetString = strings.Replace(targetString, "&#39;", `'`, -1)
+	//		targetString = strings.Replace(targetString, "&lt;", `<`, -1)
+	//		targetString = strings.Replace(targetString, `|"`, "", -1)
+	//		targetString = strings.Replace(targetString, `"|`, "", -1)
+	//		writeFiles[projectConfig.Data.Template] = targetString
+	//	}
+	//
+	//	for _, v := range projectConfig.Components {
+	//		if _, ok := writeFiles[v.Template]; !ok {
+	//			t, err := template.ParseFiles(packageDir + "/" + v.Template)
+	//			if err != nil {
+	//				c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+	//				return
+	//			}
+	//			//fmt.Println("newParamsTemplateParse", newParamsTemplateParse)
+	//			buf.Reset()
+	//			err = t.Execute(buf, newParamsTemplateParse)
+	//			if err != nil {
+	//				c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+	//				return
+	//			}
+	//			targetString := strings.Replace(buf.String(), "&#34;", `"`, -1)
+	//			targetString = strings.Replace(targetString, "&#39;", `'`, -1)
+	//			writeFiles[v.Template] = targetString
+	//		}
+	//	}
+	//	if len(writeFiles) > 0 {
+	//		for file, s := range writeFiles {
+	//			err := ioutil.WriteFile(installDir+"/"+file, []byte(s), os.ModePerm)
+	//			if err != nil {
+	//				c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+	//				return
+	//			}
+	//			cmds = append(cmds, exec.Command("/home/roger/.yarn/bin/prettier-eslint", "--config", projectDir+"/package.json", "--write", installDir+"/"+file))
+	//		}
+	//	}
+	//
+	//	if feature.FeatureOnboot {
+	//		bootString = append(bootString, `'`+feature.GetProjectFeaturesInstallName()+`'`)
+	//	}
+	//
+	//	if feature.ProjectFeaturesType == "entrance" {
+	//		routes["/"] = paramsRoutesJsRoutesParam{
+	//			Path: "/",
+	//			Page: "components/" + feature.GetProjectFeaturesInstallName() + "/Index.vue",
+	//		}
+	//	} else if feature.ProjectFeaturesType == "page" {
+	//		for _, cf := range projectConfig.Data.Values {
+	//			if cf.Key == "routePath" {
+	//				path, ok := cf.Value.(string)
+	//				if !ok {
+	//					break
+	//				}
+	//				if _, ok = routes[path]; ok {
+	//					break
+	//				}
+	//				routes[path] = paramsRoutesJsRoutesParam{
+	//					Path: cf.Value.(string),
+	//					Page: "components/" + feature.GetProjectFeaturesInstallName() + "/Index.vue",
+	//				}
+	//				break
+	//			}
+	//		}
+	//	}
+	//	for _, cf := range projectConfig.Data.Values {
+	//		if cf.FormType == "upload" {
+	//			uploadFile, ok := cf.Value.(string)
+	//			if !ok || uploadFile == "" {
+	//				continue
+	//			}
+	//			if _, err := os.Stat(installDir + "/" + uploadFile); os.IsNotExist(err) {
+	//				cmds = append(cmds, exec.Command("mv", "./tmp/"+uploadFile, installDir+"/"+uploadFile))
+	//			}
+	//		}
+	//	}
+	//	if len(cmds) > 0 {
+	//		_, _, err := utils.Pipeline(cmds...)
+	//		if err != nil && !strings.HasPrefix(err.Error(), "exit") {
+	//			c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+	//			return
+	//		}
+	//	}
+	//}
+	//cmds = cmds[:0]
+	//sendMessage("generate quasar.conf.js")
+	//quasarT, err := template.ParseFiles("./packages/quasar.conf.js.tmpl")
+	//if err != nil {
+	//	c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+	//	return
+	//}
+	//buf.Reset()
+	buildTime := time.Now().Format("20060102150405")
+	//quasarConfig := paramsQuasarConfig{
+	//	BootString: bootString,
+	//	StaticDir:  fmt.Sprintf("%d/%s", req.ProjectId, buildTime),
+	//}
+	//err = quasarT.Execute(buf, quasarConfig)
+	//if err != nil {
+	//	c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+	//	return
+	//}
+	//targetString := strings.Replace(buf.String(), "&#34;", `"`, -1)
+	//targetString = strings.Replace(targetString, "&#39;", `'`, -1)
+	//err = ioutil.WriteFile(projectDir+"/quasar.conf.js", []byte(targetString), os.ModePerm)
+	//if err != nil {
+	//	c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+	//	return
+	//}
+	//cmds = append(cmds, exec.Command("/home/roger/.yarn/bin/prettier-eslint", "--config", projectDir+"/package.json", "--write", projectDir+"/quasar.conf.js"))
+	//sendMessage("generate routes.js")
+	//routesJsTemp, err := template.ParseFiles("./packages/routes.js.tmpl")
+	//if err != nil {
+	//	c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+	//	return
+	//}
+	//buf.Reset()
+	//err = routesJsTemp.Execute(buf, routes)
+	//if err != nil {
+	//	c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+	//	return
+	//}
+	//err = ioutil.WriteFile(projectDir+"/src/router/routes.js", buf.Bytes(), os.ModePerm)
+	//if err != nil {
+	//	c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+	//	return
+	//}
+	//cmds = append(cmds, exec.Command("/home/roger/.yarn/bin/prettier-eslint", "--config", projectDir+"/package.json", "--write", projectDir+"/src/router/routes.js"))
+	//if len(cmds) > 0 {
+	//	_, _, err = utils.Pipeline(cmds...)
+	//	if err != nil && !strings.HasPrefix(err.Error(), "exit") {
+	//		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+	//		return
+	//	}
+	//}
+	//cmd := exec.Command("quasar", "build")
+	//cmd.Dir = projectDir
+	//stdoutIn, _ := cmd.StdoutPipe()
+	//err = cmd.Start()
+	//if err != nil {
+	//	c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+	//	return
+	//}
+	//go func() {
+	//	buf := make([]byte, 1024, 1024)
+	//	for {
+	//		n, err := stdoutIn.Read(buf[:])
+	//		if n > 0 {
+	//			d := buf[:n]
+	//			sendMessage(string(d))
+	//		}
+	//		if err != nil {
+	//			// Read returns io.EOF at the end of file, which is not an error for us
+	//			if err == io.EOF {
+	//				err = nil
+	//			}
+	//			return
+	//		}
+	//	}
+	//}()
+	//err = cmd.Wait()
+	//if err != nil {
+	//	c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+	//	return
+	//}
+
+	cmd := exec.Command("echo", `"`+buildTime+`"`, ">", projectDir + "/dist/spa/file.lock")
+	fmt.Println(cmd.Dir)
+	fmt.Println(cmd.String())
+	stdoutIn, _ := cmd.StdoutPipe()
+	err := cmd.Start()
 	if err != nil {
-		utils.DbServerGrpcConn.Put(dbServerConn)
 		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
 		return
 	}
-	utils.DbServerGrpcConn.Put(dbServerConn)
-
-	var cmds []*exec.Cmd
-	var bootString []string
-	routes := make(map[string]paramsRoutesJsRoutesParam)
-	buf := new(bytes.Buffer)
-	for _, feature := range projectFeatures.Features {
-		cmds = cmds[:0]
-		installDir := ""
-		var projectConfig featureVersionConfig
-		err = json.Unmarshal([]byte(feature.ProjectFeaturesConfig), &projectConfig)
-		if err != nil {
-			c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
-			return
-		}
-		for cmpK, cmp := range projectConfig.Components {
-			for cmpvK, cmpv := range cmp.Values {
-				for _, f := range projectFeatures.Features {
-					if cmpv.ProjectFeaturesId == f.ProjectFeaturesId {
-						var fProjectConfig featureVersionConfig
-						err = json.Unmarshal([]byte(f.ProjectFeaturesConfig), &fProjectConfig)
-						if err != nil {
-							c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
-							return
-						}
-						projectConfig.Components[cmpK].Values[cmpvK].ProjectFeaturesConfig = fProjectConfig
-						break
-					}
-				}
-				hashIndex := strings.LastIndex(cmpv.ProjectFeaturesInstallName, "-")
-				projectConfig.Components[cmpK].Values[cmpvK].ComponentHash = strings.Replace(cmpv.ProjectFeaturesInstallName[hashIndex:], "-", "C", -1)
-				fmt.Println("projectConfig.Components[cmpK].Values[cmpvK].ComponentHash", projectConfig.Components[cmpK].Values[cmpvK].ComponentHash)
+	go func() {
+		buf := make([]byte, 1024, 1024)
+		for {
+			n, err := stdoutIn.Read(buf[:])
+			if n > 0 {
+				d := buf[:n]
+				sendMessage(string(d))
 			}
-		}
-
-		if feature.FeatureOnboot {
-			installDir = fmt.Sprintf("%s/src/boot/%s", projectDir, feature.ProjectFeaturesInstallName)
-		} else {
-			installDir = fmt.Sprintf("%s/src/components/%s", projectDir, feature.ProjectFeaturesInstallName)
-		}
-		if _, err := os.Stat(installDir); os.IsNotExist(err) {
-			cmds = append(cmds, exec.Command("mkdir", installDir))
-		}
-
-		//for _, v := range projectConfig.Data.Values {
-		//	if v.FormType == "upload" {
-		//		if _, err := os.Stat(installDir + "/" + v.Value.(string)); os.IsNotExist(err) {
-		//			cmds = append(cmds, exec.Command("cp", "./tmp/"+v.Value.(string), installDir))
-		//		}
-		//	}
-		//}
-
-		if len(cmds) > 0 {
-			_, _, err = utils.Pipeline(cmds...)
-			if err != nil && !strings.HasPrefix(err.Error(), "exit") {
-				c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
-				return
-			}
-		}
-		cmds = cmds[:0]
-
-		if feature.ProjectFeaturesType == "click" {
-			continue
-		}
-
-		packageName := fmt.Sprintf("%s-%s", feature.FeatureName, feature.FeatureVersionName)
-		packageDir := fmt.Sprintf("./packages/%s", packageName)
-		if _, err := os.Stat(packageDir); os.IsNotExist(err) {
-			c.AbortWithStatusJSON(http.StatusBadRequest, jsonError("package: \""+packageName+"\" not found"))
-			return
-		}
-
-		files, err := ioutil.ReadDir(packageDir)
-		if err != nil {
-			c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
-			return
-		}
-
-		for _, f := range files {
-			if strings.HasSuffix(f.Name(), ".tmpl") {
-				continue
-			}
-			cmds = append(cmds, exec.Command("cp", packageDir+"/"+f.Name(), installDir))
-		}
-		if len(cmds) > 0 {
-			_, _, err = utils.Pipeline(cmds...)
-			if err != nil && !strings.HasPrefix(err.Error(), "exit") {
-				c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
-				return
-			}
-
-			cmds = cmds[:0]
-		}
-
-		writeFiles := make(map[string]string)
-		dataValues := make(map[string]interface{})
-		for _, v := range projectConfig.Data.Values {
-			dataValues[v.Key] = v.Value
-		}
-
-		newParamsTemplateParse := paramsTemplateParse{
-			InstallDir: strings.Replace(installDir, projectDir+"/src/", "", 1),
-			Config:     projectConfig,
-			DataValues: dataValues,
-		}
-		//fmt.Printf("%+v\n\n", newParamsTemplateParse)
-		if projectConfig.Data.Template != "" {
-			t, err := template.ParseFiles(packageDir + "/" + projectConfig.Data.Template)
 			if err != nil {
-				c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
-				return
-			}
-			buf := new(bytes.Buffer)
-			err = t.Execute(buf, newParamsTemplateParse)
-			if err != nil {
-				c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
-				return
-			}
-
-			targetString := strings.Replace(buf.String(), "&#34;", `"`, -1)
-			targetString = strings.Replace(targetString, "&#39;", `'`, -1)
-			targetString = strings.Replace(targetString, "&lt;", `<`, -1)
-			targetString = strings.Replace(targetString, `|"`, "", -1)
-			targetString = strings.Replace(targetString, `"|`, "", -1)
-			writeFiles[projectConfig.Data.Template] = targetString
-		}
-
-		for _, v := range projectConfig.Components {
-			if _, ok := writeFiles[v.Template]; !ok {
-				t, err := template.ParseFiles(packageDir + "/" + v.Template)
-				if err != nil {
-					c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
-					return
+				// Read returns io.EOF at the end of file, which is not an error for us
+				if err == io.EOF {
+					err = nil
 				}
-				//fmt.Println("newParamsTemplateParse", newParamsTemplateParse)
-				buf.Reset()
-				err = t.Execute(buf, newParamsTemplateParse)
-				if err != nil {
-					c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
-					return
-				}
-				targetString := strings.Replace(buf.String(), "&#34;", `"`, -1)
-				targetString = strings.Replace(targetString, "&#39;", `'`, -1)
-				writeFiles[v.Template] = targetString
-			}
-		}
-		if len(writeFiles) > 0 {
-			for file, s := range writeFiles {
-				err := ioutil.WriteFile(installDir+"/"+file, []byte(s), os.ModePerm)
-				if err != nil {
-					c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
-					return
-				}
-				cmds = append(cmds, exec.Command("/home/roger/.yarn/bin/prettier-eslint", "--config", projectDir+"/package.json", "--write", installDir+"/"+file))
-			}
-		}
-
-		if feature.FeatureOnboot {
-			bootString = append(bootString, `'`+feature.GetProjectFeaturesInstallName()+`'`)
-		}
-
-		if feature.ProjectFeaturesType == "entrance" {
-			routes["/"] = paramsRoutesJsRoutesParam{
-				Path: "/",
-				Page: "components/" + feature.GetProjectFeaturesInstallName() + "/Index.vue",
-			}
-		} else if feature.ProjectFeaturesType == "page" {
-			for _, cf := range projectConfig.Data.Values {
-				if cf.Key == "routePath" {
-					path, ok := cf.Value.(string)
-					if !ok {
-						break
-					}
-					if _, ok = routes[path]; ok {
-						break
-					}
-					routes[path] = paramsRoutesJsRoutesParam{
-						Path: cf.Value.(string),
-						Page: "components/" + feature.GetProjectFeaturesInstallName() + "/Index.vue",
-					}
-					break
-				}
-			}
-		}
-		for _, cf := range projectConfig.Data.Values {
-			if cf.FormType == "upload" {
-				uploadFile, ok := cf.Value.(string)
-				if !ok || uploadFile == "" {
-					continue
-				}
-				if _, err := os.Stat(installDir + "/" + uploadFile); os.IsNotExist(err) {
-					cmds = append(cmds, exec.Command("mv", "./tmp/"+uploadFile, installDir+"/"+uploadFile))
-				}
-			}
-		}
-		if len(cmds) > 0 {
-			_, _, err := utils.Pipeline(cmds...)
-			if err != nil && !strings.HasPrefix(err.Error(), "exit") {
-				c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
 				return
 			}
 		}
-	}
-	cmds = cmds[:0]
-
-	quasarT, err := template.ParseFiles("./packages/quasar.conf.js.tmpl")
+	}()
+	err = cmd.Wait()
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
 		return
-	}
-	buf.Reset()
-	err = quasarT.Execute(buf, bootString)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
-		return
-	}
-	targetString := strings.Replace(buf.String(), "&#34;", `"`, -1)
-	targetString = strings.Replace(targetString, "&#39;", `'`, -1)
-	err = ioutil.WriteFile(projectDir+"/quasar.conf.js", []byte(targetString), os.ModePerm)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
-		return
-	}
-	cmds = append(cmds, exec.Command("/home/roger/.yarn/bin/prettier-eslint", "--config", projectDir+"/package.json", "--write", projectDir+"/quasar.conf.js"))
-
-	routesJsTemp, err := template.ParseFiles("./packages/routes.js.tmpl")
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
-		return
-	}
-	buf.Reset()
-	err = routesJsTemp.Execute(buf, routes)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
-		return
-	}
-	err = ioutil.WriteFile(projectDir+"/src/router/routes.js", buf.Bytes(), os.ModePerm)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
-		return
-	}
-	cmds = append(cmds, exec.Command("/home/roger/.yarn/bin/prettier-eslint", "--config", projectDir+"/package.json", "--write", projectDir+"/src/router/routes.js"))
-	if len(cmds) > 0 {
-		_, _, err = utils.Pipeline(cmds...)
-		if err != nil && !strings.HasPrefix(err.Error(), "exit") {
-			c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
-			return
-		}
-
 	}
 	//
 	//if featureDetails.Feature.FeatureOnboot {

@@ -6,6 +6,7 @@ import (
 	"github.com/chenyu116/generator-mobile/utils"
 	"github.com/chenyu116/log"
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 	"net"
 	"net/http"
 	"sync"
@@ -29,12 +30,34 @@ func NewServer() *Server {
 	}
 	return s
 }
+func startRabbitmq(cfg config.RabbitmqConfig) {
+	var err error
+	utils.RabbitMQ, err = utils.NewRabbitMQClient(cfg).Init()
+	if err != nil {
+		logger.ZapLogger.Fatal("rabbitmq", zap.Error(err))
+	}
+
+	go utils.RabbitMQ.Recovery()
+}
 
 // Start Start server
 func (s *Server) Start() {
 	utils.InitPool()
 	logger.InitLogger(true, "debug")
 	cf := config.GetConfig()
+	if cf.Rabbitmq.HostPort != "" {
+		startRabbitmq(cf.Rabbitmq)
+		logger.ZapLogger.Debug("RabbitMQ Server connected")
+	}
+	//go func() {
+	//	for i := 0; i < 1000000; i++ {
+	//		utils.RabbitMQ.Publish("websocketServer-fanout", "", amqp.Publishing{
+	//			AppId: "all",
+	//			Body:  []byte("test"),
+	//		}, nil)
+	//		time.Sleep(time.Millisecond * 500)
+	//	}
+	//}()
 	providerListener, err := net.Listen("tcp", cf.Serve.HostPort)
 	if err != nil {
 		log.Fatal(err.Error())
@@ -44,6 +67,7 @@ func (s *Server) Start() {
 	r := gin.New()
 	r.Use(gin.Recovery())
 	r.Use(gin.Logger())
+	r.Static("/projects", "./projects")
 
 	r.NoMethod(NotFound)
 	r.NoRoute(NotFound)

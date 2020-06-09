@@ -12,7 +12,7 @@ module.exports = function(/* ctx */) {
     // app boot file (/src/boot)
     // --> boot files are part of "main.js"
     // https://quasar.dev/quasar-cli/cli-documentation/boot-files
-    boot: ['preload',{{range $i,$e:=.}}{{$e}},{{end}}'i18n','mapUtil', 'weixinJssdk', 'iBeacon', 'process'],
+    boot: ['preload',{{range $i,$e:=.BootString}}{{$e}},{{end}}'i18n','mapUtil', 'weixinJssdk', 'iBeacon', 'process'],
 
     // https://quasar.dev/quasar-cli/quasar-conf-js#Property%3A-css
     css: ['app.scss'],
@@ -66,6 +66,7 @@ module.exports = function(/* ctx */) {
       showProgress: true,
       gzip: false,
       analyze: false,
+      publicPath: "https://o.signp.cn/project/{{.StaticDir}}/",
 
       // Options below are automatically set depending on the env, set them if you want to override
       // preloadChunks: false,

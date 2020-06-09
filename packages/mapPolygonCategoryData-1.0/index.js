@@ -45,5 +45,6 @@ export default ({ store }) => {
     dependencies: ['indexedDB'],
     concurrency: false,
     fn: mapPolygonCategory,
+    name: 'mapPolygonCategory',
   });
 };

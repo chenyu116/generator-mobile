@@ -48,5 +48,6 @@ export default ({ store }) => {
     dependencies: ['indexedDB'],
     concurrency: true,
     fn: mapCategory,
+    name: 'mapCategory',
   });
 };

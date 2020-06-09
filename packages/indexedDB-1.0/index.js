@@ -55,5 +55,6 @@ export default ({ store }) => {
     concurrency: false,
     dependencies: [],
     fn: indexedDB,
+    name: 'indexedDB',
   });
 };

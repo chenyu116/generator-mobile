@@ -71,5 +71,6 @@ export default ({ store }) => {
     dependencies: ['indexedDB', 'mapPolygonCategory'],
     concurrency: true,
     fn: mapPolygons,
+    name: 'mapPolygons',
   });
 };
