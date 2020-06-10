@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>{{print "{{naviInfo['project_name']}}"}}</title>
+
+    <meta charset="utf-8" />
+    <meta
+      name="description"
+      content={{print `"{{naviInfo['project_name']}}"`}}
+    />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="msapplication-tap-highlight" content="no" />
+    <meta
+      name="viewport"
+      content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width<% if (htmlWebpackPlugin.options.ctx.mode.cordova || htmlWebpackPlugin.options.ctx.mode.capacitor) { %>, viewport-fit=cover<% } %>"
+    />
+
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="128x128"
+      href="statics/icons/favicon-128x128.png"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="96x96"
+      href="statics/icons/favicon-96x96.png"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="statics/icons/favicon-32x32.png"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="16x16"
+      href="statics/icons/favicon-16x16.png"
+    />
+    <link rel="icon" type="image/ico" href="statics/icons/favicon.ico" />
+    <script>
+       let ibeaconJson = {{print `'{{ibeaconList}}'`}};
+            try{
+                ibeaconJson = JSON.parse(ibeaconJson);
+            }catch (e) {
+                ibeaconJson = {};
+            };
+      (window.config = {
+        debug: true,
+        theme: {
+          baseColor: 'light-blue-2',
+          textColor: 'black',
+        },
+      }),{{if ne .DebugInfo ""}}(window.startPointInfo = {{.DebugInfo}}),{{else}}
+        (window.startPointInfo = {{print `{
+          map_point_id: '{{ naviInfo["map_point_id"]}}',
+          map_id: '{{ naviInfo["map_id"]}}',
+          id: '{{naviInfo["id"]}}',
+          name: '{{naviInfo["name"]}}',
+          point: '{{naviInfo["point"]}}',
+          gid: '{{naviInfo["gid"]}}',
+          name_en: "{{naviInfo['name_en']}}",
+          map_name: "{{naviInfo['map_name']}}",
+          map_gid: "{{naviInfo['map_gid']}}",
+          map_name_en: "{{naviInfo['map_name_en']}}",
+          map_polygon_id: "{{naviInfo['map_polygon_id']}}",
+          project_name: "{{naviInfo['project_name']}}",
+          project_id: '{{naviInfo["project_id"]}}',
+          center: "{{naviInfo['center']}}",
+          detailed_name: "{{naviInfo['detailed_name']}}",
+          default_map_id: "{{naviInfo['project_client_map']}}",
+          project_pages: "{{naviInfo['project_pages']}}",
+          dbVersion: 21,
+          slogon:"{{naviInfo['project_content']}}",
+          iBeaconBrandUserName: 'gh_2fefad2a2b19',
+        }`}}),{{end}}
+      (window.wxJsApi = {
+        beta: true,
+        debug: false,
+        appId: {{print "{{wxJsApi['appId']}}"}},
+        timestamp: {{print "{{wxJsApi['timestamp']}}"}},
+        nonceStr: {{print "{{wxJsApi['nonceStr']}}"}},
+        signature: {{print "{{wxJsApi['signature']}}"}},
+        jsApiList: [
+          'openWXDeviceLib',
+          'onWXDeviceBluetoothStateChange',
+          'playVoice',
+          'startRecord',
+          'stopRecord',
+          'translateVoice',
+          'startSearchBeacons',
+          'onSearchBeacons',
+          'scanQRCode',
+          'startMonitoringBeacons',
+          'stopMonitoringBeacons',
+          'onBeaconsInRange',
+          'openLocation',
+          'getLocation',
+          'getNetworkType',
+        ],
+      });
+    </script>
+  </head>
+  <body>
+    <!-- DO NOT touch the following DIV -->
+    <div id="q-app"></div>
+  </body>
+</html>

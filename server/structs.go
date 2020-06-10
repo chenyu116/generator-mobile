@@ -6,6 +6,10 @@ type RequestInt32ProjectId struct {
 	ProjectId int32 `form:"projectId" binding:"required" json:"projectId"`
 }
 
+type RequestInt32UriProjectId struct {
+	ProjectId int32 `uri:"projectId" binding:"required" json:"projectId"`
+}
+
 type RequestStringProjectId struct {
 	ProjectId string `form:"projectId" binding:"required" json:"projectId"`
 }
@@ -16,6 +20,11 @@ type RequestInt32FeatureId struct {
 
 type RequestInt32ProjectFeaturesId struct {
 	ProjectFeaturesId int32 `form:"projectFeaturesId" binding:"required" json:"projectFeaturesId"`
+}
+
+type RequestPutPreview struct {
+	RequestInt32ProjectId
+	Settings string `form:"settings" binding:"required" json:"settings"`
 }
 
 type RequestPostInstall struct {
@@ -100,4 +109,8 @@ type projectFeature struct {
 type paramsQuasarConfig struct {
 	BootString []string
 	StaticDir  string
+}
+
+type paramsPreviewIndex struct {
+	DebugInfo string
 }

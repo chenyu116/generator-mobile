@@ -12,6 +12,11 @@ rabbitmq:
     - name: "websocketServer-direct"
       kind: "direct"
   queuePrefix: "websocketServer"
+oss:
+  endPoint: "https://oss-cn-shenzhen.aliyuncs.com"
+  accessKeyID: "LTAIoh5uIkAzSN25"
+  accessKeySecret: "3XZO16LsLVx7V1JEBT6PnozzvhH4Xx"
+  bucketName: "signposs1"
 common:
   connectTimeout: 10
   staticPath: static

@@ -93,9 +93,12 @@ func (s *Server) Start() {
 	v1.GET("/features", features)
 	v1.GET("/feature", feature)
 	v1.PUT("/install", install)
+	v1.PUT("/preview", preview)
+	v1.DELETE("/preview/:projectId", cancelPreview)
 	v1.POST("/edit", edit)
 	v1.POST("/upload", upload)
 	v1.PUT("/build", build)
+	v1.PUT("/deploy", deploy)
 
 	log.Infof("Server Started! Addr: \"%s\"", cf.Serve.HostPort)
 

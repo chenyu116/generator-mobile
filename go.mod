@@ -3,6 +3,7 @@ module github.com/chenyu116/generator-mobile
 go 1.14
 
 require (
+	github.com/aliyun/aliyun-oss-go-sdk v2.1.1+incompatible
 	github.com/chenyu116/log v0.0.0-20191011075556-ad1d13bef4b1
 	github.com/chenyu116/postgres-server v0.0.0-20200513044628-dc67401ca3b7 // indirect
 	github.com/fastly/go-utils v0.0.0-20180712184237-d95a45783239 // indirect
@@ -30,6 +31,7 @@ require (
 	golang.org/x/net v0.0.0-20200506145744-7e3656a0809f
 	golang.org/x/sys v0.0.0-20200511232937-7e40ca221e25 // indirect
 	golang.org/x/text v0.3.2 // indirect
+	golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1 // indirect
 	google.golang.org/genproto v0.0.0-20200511104702-f5ebc3bea380 // indirect
 	google.golang.org/grpc v1.29.1
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
