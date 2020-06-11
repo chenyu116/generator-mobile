@@ -550,6 +550,7 @@ func deploy(c *gin.Context) {
 		return
 	}
 	sendMessage("clear")
+	time.Sleep(time.Second)
 	indexBytes, err := ioutil.ReadFile(distDir + "index.html")
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
@@ -663,10 +664,10 @@ func build(c *gin.Context) {
 				hashIndex := strings.LastIndex(cmpv.ProjectFeaturesInstallName, "-")
 				projectConfig.Components[cmpK].Values[cmpvK].ComponentHash = strings.Replace(cmpv.ProjectFeaturesInstallName[hashIndex:], "-", "C", -1)
 				fmt.Println("projectConfig.Components[cmpK].Values[cmpvK].ComponentHash", projectConfig.Components[cmpK].Values[cmpvK].ComponentHash)
-				sendMessage(fmt.Sprintf("generate component hash \"%s\" %s", cmpv.ProjectFeaturesInstallName, projectConfig.Components[cmpK].Values[cmpvK].ComponentHash))
+				sendMessage(fmt.Sprintf("generating component hash \"%s\" %s", cmpv.ProjectFeaturesInstallName, projectConfig.Components[cmpK].Values[cmpvK].ComponentHash))
 			}
 		}
-		sendMessage(fmt.Sprintf("generate component \"%s\"", feature.ProjectFeaturesInstallName))
+		sendMessage(fmt.Sprintf("generating component \"%s\"", feature.ProjectFeaturesInstallName))
 		if feature.FeatureOnboot {
 			installDir = fmt.Sprintf("%s/src/boot/%s", projectDir, feature.ProjectFeaturesInstallName)
 		} else {
@@ -836,7 +837,7 @@ func build(c *gin.Context) {
 		}
 	}
 	cmds = cmds[:0]
-	sendMessage("generate quasar.conf.js")
+	sendMessage("generating quasar.conf.js")
 	quasarT, err := template.ParseFiles("./packages/quasar.conf.js.tmpl")
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
@@ -861,7 +862,7 @@ func build(c *gin.Context) {
 		return
 	}
 	cmds = append(cmds, exec.Command("/home/roger/.yarn/bin/prettier-eslint", "--config", projectDir+"/package.json", "--write", projectDir+"/quasar.conf.js"))
-	sendMessage("generate routes.js")
+	sendMessage("generating routes.js")
 	routesJsTemp, err := template.ParseFiles("./packages/routes.js.tmpl")
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))

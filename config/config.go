@@ -59,7 +59,7 @@ type ServeConfig struct {
 }
 
 type CommonConfig struct {
-	StaticPath       string `mapstructure:"staticPath"`
+	StaticPath string `mapstructure:"staticPath"`
 }
 
 type DBConfig struct {
@@ -75,12 +75,19 @@ type RabbitmqConfig struct {
 	Exchanges   []map[string]string `mapstructure:"exchanges"`
 	QueuePrefix string              `mapstructure:"queuePrefix"`
 }
+type OssConfig struct {
+	EndPoint        string `mapstructure:"endPoint"`
+	AccessKeyID     string `mapstructure:"accessKeyID"`
+	AccessKeySecret string `mapstructure:"accessKeySecret"`
+	BucketName      string `mapstructure:"bucketName"`
+}
 
 type Config struct {
-	Serve    ServeConfig  `mapstructure:"serve"`
-	DbServer DBConfig     `mapstructure:"dbServer"`
-	Common   CommonConfig `mapstructure:"common"`
-	Rabbitmq  RabbitmqConfig  `mapstructure:"rabbitmq"`
+	Serve    ServeConfig    `mapstructure:"serve"`
+	DbServer DBConfig       `mapstructure:"dbServer"`
+	Common   CommonConfig   `mapstructure:"common"`
+	Rabbitmq RabbitmqConfig `mapstructure:"rabbitmq"`
+	Oss      OssConfig      `mapstructure:"oss"`
 }
 
 func SetConfigPath(path string) {
