@@ -6,7 +6,7 @@
         <div class="row">
           <div class="col-1 q-mr-md">
             <q-btn flat="" round="" @click="speechMode = !speechMode"
-              ><q-icon v-if="!speechMode" name="record_voice_over"/><q-icon
+              ><q-icon v-if="!speechMode" name="record_voice_over" /><q-icon
                 v-if="speechMode"
                 name="voice_over_off"
             /></q-btn>
@@ -22,7 +22,9 @@
             />
           </div>
           <div class="q-ml-md">
-            <q-btn @click="search()">{{print "{{ $t('search') }}"}}</q-btn>
+            <q-btn :disable="loading.searching" @click="search()"
+              >{{print "{{ $t('search') }}"}}</q-btn
+            >
           </div>
         </div>
         <div v-if="!speechMode">
@@ -39,34 +41,38 @@
               <q-item-label header class="q-pt-none q-px-none"
                 >{{print "{{ $t('searchResult') }}"}}</q-item-label
               >
-              <q-item
-                v-for="(item, index) in list"
-                :key="index"
-                class="q-px-none"
-              >
-                <q-item-section>{{print "{{ item.name }}"}}</q-item-section>
-                <q-item-section side>
-                  <div class="text-grey-8 q-gutter-md">
-                    <q-btn
-                      size="12px"
-                      flat
-                      dense
-                      icon="view_list"
-                      :label="$t('details')"
-                      stack=""
-                    />
-                    <q-btn
-                      size="12px"
-                      flat
-                      dense
-                      icon="navigation"
-                      :label="$t('mapIt')"
-                      stack=""
-                    />
-                  </div>
-                </q-item-section>
-              </q-item>
-            </q-list>
+              <q-infinite-scroll @load="onLoad">
+                <q-item
+                  v-for="(item, index) in list"
+                  :key="index"
+                  class="q-px-none"
+                >
+                  <q-item-section>{{print "{{ item.name }}"}}</q-item-section>
+                  <q-item-section side>
+                    <div class="text-grey-8 q-gutter-md">
+                      <q-btn
+                        size="12px"
+                        flat
+                        dense
+                        icon="view_list"
+                        :label="$t('details')"
+                        stack=""
+                      />
+                      <q-btn
+                        size="12px"
+                        flat
+                        dense
+                        icon="navigation"
+                        :label="$t('mapIt')"
+                        stack=""
+                      />
+                    </div>
+                  </q-item-section> </q-item
+                ><template v-slot:loading>
+                  <div class="text-center q-my-md">
+                    <q-spinner-dots color="primary" size="40px" />
+                  </div> </template></q-infinite-scroll
+            ></q-list>
           </div>
         </div>
         <div v-if="speechMode">
@@ -76,21 +82,21 @@
           >
             <q-card-section>{{print "{{ $t('speech') }}"}}</q-card-section>
             <q-card-section class="absolute-center row text-center">
-              <q-icon name="settings_voice" size="md" />
+              <q-icon v-if="!isRecording" name="settings_voice" size="md" />
+              <q-spinner-audio v-if="isRecording" size="md" />
             </q-card-section>
           </q-card>
-          <q-card flat="" class="text-center">
+          <q-card v-if="!loading.searching" flat="" class="text-center">
             <q-card-section>
-              <q-btn
-                icon="fingerprint"
-                round=""
-                size="40px"
-                dense=""
-                color="pink"
-                class="shadow-4"
-                @touchstart="startRecord"
-                @touchend="stopRecord"
-              />
+              <span @touchstart="startRecord" @touchend="stopRecord">
+                <q-btn
+                  icon="fingerprint"
+                  round=""
+                  size="40px"
+                  dense=""
+                  color="pink"
+                  class="shadow-4"
+              /></span>
             </q-card-section>
             <q-card-section>{{print "{{ $t('pressToTalk') }}"}}</q-card-section>
           </q-card>
@@ -108,11 +114,12 @@ export default {
       loading: {
         searching: false,
       },
-      errMsg: '',
-      keywords: '',
+      errMsg: "",
+      keywords: "",
       list: [],
+      result: [],
       polygons: [],
-      currentPosition: '',
+      currentPosition: "",
       listHeight: window.innerHeight - 200,
       canUseSpeech: false,
       speechMode: false,
@@ -121,8 +128,8 @@ export default {
       recordTime: 0,
       isRecording: false,
       recordTimeout: null,
-      speechRowStyle: '',
-      speechLocalId: '',
+      speechRowStyle: "",
+      speechLocalId: "",
     };
   },
 
@@ -134,7 +141,7 @@ export default {
   watch: {
     windowHeight: {
       handler(val) {
-        this.speechRowStyle = 'height:' + (val - 270) + 'px;';
+        this.speechRowStyle = "height:" + (val - 270) + "px;";
       },
       immediate: true,
     },
@@ -144,11 +151,14 @@ export default {
       this.$wechat.wx.translateVoice({
         localId: val, // 需要识别的音频的本地Id，由录音相关接口获得
         isShowProgressTips: 1, // 默认为1，显示进度提示
-        success: function(res) {
+        success: function (res) {
           self.keywords = res.translateResult
-            ? res.translateResult.replace('。', '')
-            : ''; // 语音识别的结果
-          self.speechLocalId = '';
+            ? res.translateResult.replace("。", "")
+            : ""; // 语音识别的结果
+          self.speechLocalId = "";
+          if (self.keywords === "") {
+            return;
+          }
           self.search();
         },
       });
@@ -160,7 +170,7 @@ export default {
   mounted() {
     const self = this;
     if (this.$store.state.global.isWx) {
-      this.$wechat.wx.ready(function() {
+      this.$wechat.wx.ready(function () {
         self.canUseSpeech = true;
       });
     }
@@ -172,18 +182,37 @@ export default {
     }
   },
   beforeDestroy() {
-    if (this.$route.name !== 'route') {
-      this.$store.commit('updateSearchKeywords', null);
+    if (this.$route.name !== "route") {
+      this.$store.commit("updateSearchKeywords", null);
     }
   },
   methods: {
-    search() {
+    onLoad(index, done) {
       const self = this;
-      this.keywords = this.keywords ? this.keywords.trim() : '';
-      if (this.keywords === '') {
-        this.errMsg = this.$t('needKeywords');
+      if (this.result.length === 0) {
+        done();
         return;
       }
+      setTimeout(() => {
+        const list = this.result.splice(0, 10);
+        if (list.length > 0) {
+          console.info("add 10");
+          list.forEach(function (v) {
+            self.list.push(v);
+          });
+        }
+        done();
+      }, 1000);
+    },
+    search() {
+      const self = this;
+      this.keywords = this.keywords ? this.keywords.trim() : "";
+      if (this.keywords === "") {
+        this.errMsg = this.$t("needKeywords");
+        return;
+      }
+      this.list = [];
+      this.result = [];
       //   this.$http.put(
       //     this.apiHost + '/project/spm',
       //     {
@@ -203,76 +232,75 @@ export default {
       //     },
       //   );
       //   this.$store.commit('updateSearchKeywords', this.keywords);
-      this.errMsg = '';
+      this.errMsg = "";
       this.loading.searching = true;
-      if (window.AMap) {
-        const searchLang = this.$i18n.locale === 'zh_CN' ? 'zh_CN' : 'en';
-        const placeSearch = new window.AMap.PlaceSearch({
-          pageSize: 20,
-          lang: searchLang,
-        });
-        let currentPoint = this.changePoint(
-          this.$store.state.startPointInfo.point,
-        );
-        try {
-          window.AMap.plugin('AMap.Geolocation', function() {
-            const geolocation = new window.AMap.Geolocation();
-            geolocation.getCurrentPosition(function(status, result) {
-              if (result.position) {
-                currentPoint = [result.position.lng, result.position.lat];
-              }
-              placeSearch.searchNearBy(
-                self.keywords,
-                currentPoint,
-                5000,
-                function(status, result) {
-                  if (
-                    result.info === 'OK' &&
-                    result.poiList &&
-                    result.poiList.pois.length > 0
-                  ) {
-                    self.list = result.poiList.pois;
-                    self.speechMode = false;
-                  } else {
-                    self.errMsg = self.$t('noSearchResult');
-                  }
-                  self.loading.searching = false;
-                },
-              );
-            });
-          });
-        } catch (e) {
-          self.errMsg = self.$t('anErrorOccurred');
-          self.loading.searching = false;
-        }
-      } else {
-        this.searchRemote();
-      }
+      // if (window.AMap) {
+      //   const searchLang = this.$i18n.locale === "zh_CN" ? "zh_CN" : "en";
+      //   const placeSearch = new window.AMap.PlaceSearch({
+      //     pageSize: 20,
+      //     lang: searchLang,
+      //   });
+      //   let currentPoint = this.changePoint(
+      //     this.$store.state.startPointInfo.point
+      //   );
+      //   try {
+      //     window.AMap.plugin("AMap.Geolocation", function () {
+      //       const geolocation = new window.AMap.Geolocation();
+      //       geolocation.getCurrentPosition(function (status, result) {
+      //         if (result.position) {
+      //           currentPoint = [result.position.lng, result.position.lat];
+      //         }
+      //         placeSearch.searchNearBy(
+      //           self.keywords,
+      //           currentPoint,
+      //           5000,
+      //           function (status, result) {
+      //             if (
+      //               result.info === "OK" &&
+      //               result.poiList &&
+      //               result.poiList.pois.length > 0
+      //             ) {
+      //               self.list = result.poiList.pois;
+      //               self.speechMode = false;
+      //             } else {
+      //               self.errMsg = self.$t("noSearchResult");
+      //             }
+      //             self.loading.searching = false;
+      //           }
+      //         );
+      //       });
+      //     });
+      //   } catch (e) {
+      //     self.errMsg = self.$t("anErrorOccurred");
+      //     self.loading.searching = false;
+      //   }
+      // } else {
+      this.searchRemote().finally(function () {
+        self.loading.searching = false;
+      });
+      // }
     },
     loadPolygons() {
       const self = this;
       const readStore = self.$store.state.global.indexedDB
-        .transaction('mapPolygons')
-        .objectStore('mapPolygons')
+        .transaction("mapPolygons")
+        .objectStore("mapPolygons")
         .getAll();
-      readStore.onsuccess = function(e) {
+      readStore.onsuccess = function (e) {
         const r = e.target.result;
         if (r && r.length > 0) {
           self.polygons = r;
-          console.log('self.polygons', self.polygons);
+          console.log("self.polygons", self.polygons);
         }
       };
     },
     startRecord(e) {
-      const self = this;
       e.preventDefault();
-      console.log('startRecord');
+      this.isRecording = true;
+      console.log("startRecord");
       this.startRecordTime = new Date().getTime();
-      this.recordTimeout = setTimeout(function() {
-        console.log('startRecord');
-        clearTimeout(self.recordTimeout);
-        self.isRecording = true;
-        self.$wechat.wx.startRecord();
+      this.recordTimeout = setTimeout(() => {
+        this.$wechat.wx.startRecord();
       }, 200);
     },
     stopRecord() {
@@ -285,45 +313,43 @@ export default {
         return;
       }
       this.$wechat.wx.stopRecord({
-        success: function(res) {
+        success: function (res) {
           self.speechLocalId = res.localId;
         },
-        fail: function() {},
       });
     },
     searchRemote() {
       const self = this;
-      return new Promise(function(resolve, reject) {
+      return new Promise(function (resolve, reject) {
         self.$http
           .post(
-            'https://apis.signp.cn/search',
+            "https://apis.signp.cn/search",
             {
               keywords: self.keywords,
-              type: '',
+              type: "",
               projectID: self.$store.state.global.startPointInfo.project_id,
               timestamp: parseInt(new Date().getTime() / 1000),
-              access_token: 'test',
+              access_token: "test",
             },
-            { emulateJSON: true },
+            { emulateJSON: true }
           )
-          .then(function(resp) {
+          .then(function (resp) {
             console.log(resp);
-            // if (resp.status === 200 && resp.body) {
-            //   const writeStore = params.store.state.global.indexedDB
-            //     .transaction('mapCategory', 'readwrite')
-            //     .objectStore('mapCategory');
-            //   const hasCall = Object.prototype.hasOwnProperty;
-            //   for (const i in resp.body) {
-            //     if (hasCall.call(resp.body, i)) {
-            //       writeStore.put(resp.body[i]);
-            //     }
-            //   }
-            //   resolve();
-            // } else {
-            //   reject(new Error('读取地图楼层分类失败'));
-            // }
+            if (
+              resp.status === 200 &&
+              resp.body &&
+              Array.isArray(resp.body.data)
+            ) {
+              self.speechMode = false;
+              self.result = resp.body.data;
+              console.log(self.result.length);
+              self.list = self.result.splice(0, 10);
+              resolve();
+            } else {
+              reject(new Error("网络状况不佳，请稍后再试"));
+            }
           })
-          .catch(function() {
+          .catch(function () {
             // reject(new Error('读取地图楼层分类失败'));
           });
       });
@@ -331,8 +357,8 @@ export default {
     route(item) {
       const details = item;
       details.lnglat = [item.location.lng, item.location.lat];
-      this.$store.commit('updateCurrentRoute', details);
-      this.$router.replace('/route');
+      this.$store.commit("updateCurrentRoute", details);
+      this.$router.replace("/route");
     },
   },
 };

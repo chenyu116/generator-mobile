@@ -41,12 +41,6 @@
     />
     <link rel="icon" type="image/ico" href="statics/icons/favicon.ico" />
     <script>
-       let ibeaconJson = {{print `'{{ibeaconList}}'`}};
-            try{
-                ibeaconJson = JSON.parse(ibeaconJson);
-            }catch (e) {
-                ibeaconJson = {};
-            };
       (window.config = {
         debug: true,
         theme: {
