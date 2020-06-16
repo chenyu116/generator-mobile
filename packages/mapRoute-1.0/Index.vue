@@ -10,14 +10,13 @@
       <q-page class="row">
         <div
           id="map"
-          :style="
-            `width:${$store.state.global.windowSize.width}px;height:${$store
-              .state.global.windowSize.height - 188}px;`
-          "
+          :style="`width:${$store.state.global.windowSize.width}px;height:${
+            $store.state.global.windowSize.height - 188
+          }px;`"
         ></div>
         <q-footer
           v-if="!loading.header"
-          style="height:138px"
+          style="height: 138px;"
           :class="`bg-grey-2 text-grey-7 shadow-up-1`"
         >
           <q-list separator>
@@ -40,9 +39,7 @@
                     :name="index"
                     class="column flex-center"
                   >
-                    <div class="text-center">
-                      {{print "{{ item }}"}}
-                    </div>
+                    <div class="text-center">{{print "{{ item }}"}}</div>
                   </q-carousel-slide>
                 </q-carousel></q-item-section
               >
@@ -59,9 +56,7 @@
             </q-item>
             <q-item class="q-px-md">
               <q-item-section
-                ><q-item-label
-                  v-if="routeDest.name"
-                  class="text-h6 text-black"
+                ><q-item-label v-if="routeDest.name" class="text-h6 text-black"
                   >{{print "{{ $t(routeDest.name) }}"}}</q-item-label
                 ><q-item-label
                   v-if="routeDest.map_name"
@@ -87,13 +82,13 @@
 </template>
 
 <script>
-import mapboxgl from 'mapbox-gl';
+import mapboxgl from "mapbox-gl";
 export default {
   components: {},
   data() {
     const self = this;
     return {
-      slide: '',
+      slide: "",
       loading: { select: true, header: false },
       mapList: {},
       mapPolygons: {},
@@ -102,7 +97,7 @@ export default {
       mapCategory: {},
       showDetails: false,
       routeDest: self.$store.state.global.routeDest || {},
-      clickedMapPolygon: '',
+      clickedMapPolygon: "",
       markerOffset: [0, 0],
       stepText: [],
       startMarker: null,
@@ -112,10 +107,10 @@ export default {
         step: 0,
       },
       zoom: 16,
-      center: self.$store.state.global.startPointInfo.center.split(','),
+      center: self.$store.state.global.startPointInfo.center.split(","),
       events: {
-        init: function() {},
-        click: function() {
+        init: function () {},
+        click: function () {
           //   self.$refs.select.blur();
         },
       },
@@ -127,31 +122,31 @@ export default {
   },
   watch: {
     slide(val) {
-      console.log('watch slide', val);
+      console.log("watch slide", val);
       if (
         !this.simulate.simulating &&
         this.$mapUtil.routing.routingPathArr[val]
       ) {
         const self = this;
         this.changeMap(
-          this.$mapUtil.routing.routingPathArr[val][0].map_id,
-        ).then(function() {
+          this.$mapUtil.routing.routingPathArr[val][0].map_id
+        ).then(function () {
           self.$mapUtil.renderRoute(val);
         });
       }
     },
     showDetails(val) {
       if (val === false) {
-        this.selectMapGID = '';
+        this.selectMapGID = "";
       }
     },
   },
   beforeDestroy() {
-    if (typeof this.dismiss === 'function') {
+    if (typeof this.dismiss === "function") {
       this.dismiss();
     }
-    this.$store.commit('global/SET_STATE_PROPERTY', {
-      name: 'routeDest',
+    this.$store.commit("global/SET_STATE_PROPERTY", {
+      name: "routeDest",
       value: null,
     });
     this.$mapUtil.reset();
@@ -159,15 +154,15 @@ export default {
   mounted() {
     this.$q.loading.hide();
     if (!this.$store.state.global.routeDest && !this.$route.params.categoryId) {
-      return this.$router.replace('/');
+      return this.$router.replace("/");
     }
     const map = new mapboxgl.Map({
-      container: 'map',
+      container: "map",
       style: {
         version: 8,
         sources: {},
-        sprite: this.ossHost + 'project/113/sprite/sprite',
-        glyphs: this.ossHost + 'project/113/{fontstack}/{range}.pbf',
+        sprite: this.ossHost + "project/113/sprite/sprite",
+        glyphs: this.ossHost + "project/113/{fontstack}/{range}.pbf",
         light: {
           intensity: 0.1,
         },
@@ -188,21 +183,33 @@ export default {
     cancelSimulate() {
       this.simulate.simulating = false;
       this.$mapUtil.cancelSimulate();
+      if (
+        this.$mapUtil.routing.routingPathArr[0][0].map_id !== this.currentMapId
+      ) {
+        this.changeMap(this.$mapUtil.routing.routingPathArr[0][0].map_id);
+        this.$mapUtil.renderRoute(0);
+        this.slide = 0;
+      }
     },
     goSimulate() {
       const self = this;
       this.simulate.simulating = true;
       if (
         this.$mapUtil.routing.routingPathArr &&
-        typeof this.$mapUtil.routing.routingPathArr.forEach === 'function'
+        typeof this.$mapUtil.routing.routingPathArr.forEach === "function"
       ) {
-        console.log('simulate');
-        let simulatingInveral;
-        BP.mapSeries(self.$mapUtil.routing.routingPathArr, function(
-          arr,
-          index,
+        if (
+          self.$mapUtil.routing.routingPathArr[0][0].map_id !==
+          self.currentMapId
         ) {
-          return new Promise(function(resolve, reject) {
+          self.changeMap(self.$mapUtil.routing.routingPathArr[0][0].map_id);
+        }
+        let simulatingInveral;
+        BP.mapSeries(self.$mapUtil.routing.routingPathArr, function (
+          arr,
+          index
+        ) {
+          return new Promise(function (resolve, reject) {
             if (!self.simulate.simulating) {
               self.$mapUtil.cancelSimulate();
               return;
@@ -222,27 +229,27 @@ export default {
             self.$mapUtil.simulate(arr);
           });
         })
-          .then(function() {
-            self.cancelSimulate();
+          .then(function () {
+            // self.cancelSimulate();
           })
-          .catch(function(err) {});
+          .catch(function (err) {});
       }
     },
     loadCategoryRouteRemote() {
       const self = this;
-      return new Promise(function(resolve, reject) {
+      return new Promise(function (resolve, reject) {
         self.$http
           .post(
-            'https://apis.signp.cn/category/navi',
+            "https://apis.signp.cn/category/navi",
             {
               projectID: self.$store.state.global.startPointInfo.project_id,
               pointID: self.$store.state.global.startPointInfo.id,
               categoryID: self.$route.params.categoryId,
               refresh: 1,
             },
-            { emulateJSON: true },
+            { emulateJSON: true }
           )
-          .then(function(resp) {
+          .then(function (resp) {
             console.log(resp);
             if (
               resp.status === 200 &&
@@ -251,28 +258,28 @@ export default {
               resp.body.data.length > 0
             ) {
               const routeDest = resp.body.data[resp.body.data.length - 1];
-              console.log('routeDest', routeDest);
+              console.log("routeDest", routeDest);
               routeDest.name = routeDest.point_name;
-              self.$store.commit('global/SET_STATE_PROPERTY', {
-                name: 'routeDest',
+              self.$store.commit("global/SET_STATE_PROPERTY", {
+                name: "routeDest",
                 value: routeDest,
               });
               self.routeDest = routeDest;
               resolve(resp.body.data);
             } else {
-              reject(new Error('读取路径信息失败'));
+              reject(new Error("读取路径信息失败"));
             }
           })
-          .catch(function() {
-            reject(new Error('读取路径信息失败'));
+          .catch(function () {
+            reject(new Error("读取路径信息失败"));
           });
       });
     },
     loadRouteRemote() {
       const self = this;
-      return new Promise(function(resolve, reject) {
+      return new Promise(function (resolve, reject) {
         self.$http
-          .get(self.apiHost + '/route', {
+          .get(self.apiHost + "/route", {
             params: {
               projectID: self.$store.state.global.startPointInfo.project_id,
               dest: self.routeDest.map_gid,
@@ -280,22 +287,23 @@ export default {
               timestamp: parseInt(new Date().getTime() / 1000),
             },
           })
-          .then(function(resp) {
+          .then(function (resp) {
             if (resp.status === 200) {
               resolve(resp.body);
             } else {
-              reject(new Error('读取路径信息失败'));
+              reject(new Error("读取路径信息失败"));
             }
           });
       });
     },
     changeMap(mapId) {
       const self = this;
-      return new Promise(function(resolve) {
+      return new Promise(function (resolve) {
         if (!self.mapList[mapId]) {
           return resolve();
         }
         const mapDetails = self.mapList[mapId];
+        self.currentMapId = mapId;
         self.$mapUtil.removeMapPolygonClickEvent(self.clickPolygonListener);
         self.$mapUtil.clearMarker();
         self.$mapUtil.parseMapSetting(mapDetails.map_setting);
@@ -307,7 +315,7 @@ export default {
       const self = this;
       this.loading.header = true;
       this.loadMapList()
-        .then(function() {
+        .then(function () {
           self.currentMapId = self.$store.state.global.startPointInfo.map_id;
           if (
             self.$route.params.categoryId &&
@@ -317,26 +325,26 @@ export default {
           }
           return self.loadRouteRemote();
         })
-        .then(function(routeList) {
-          console.log('routeList', routeList);
+        .then(function (routeList) {
+          console.log("routeList", routeList);
           self.$mapUtil.genRoutingPath(routeList);
           self.stepText = self.$mapUtil.routing.stepText;
           self.slide = 0;
           console.log(self.stepText);
           return BP.delay(1000);
         })
-        .then(function() {
+        .then(function () {
           self.loading.header = false;
         })
-        .catch(function() {
+        .catch(function () {
           self.dismiss = self.$q.notify({
-            message: '数据加载失败',
+            message: "数据加载失败",
             timeout: 0,
-            type: 'negative',
+            type: "negative",
             actions: [
               {
-                label: self.$t('retry'),
-                color: 'yellow',
+                label: self.$t("retry"),
+                color: "yellow",
                 handler: () => {
                   self.initData();
                 },
@@ -347,12 +355,12 @@ export default {
     },
     loadMapCategory() {
       const self = this;
-      return new Promise(function(resolve) {
+      return new Promise(function (resolve) {
         const readStore = self.$store.state.global.indexedDB
-          .transaction('mapCategory')
-          .objectStore('mapCategory')
+          .transaction("mapCategory")
+          .objectStore("mapCategory")
           .getAll();
-        readStore.onsuccess = function(e) {
+        readStore.onsuccess = function (e) {
           const r = e.target.result;
           if (r && r.length > 0) {
             for (let i = 0; i < r.length; i++) {
@@ -370,12 +378,12 @@ export default {
     },
     loadMapList() {
       const self = this;
-      return new Promise(function(resolve) {
+      return new Promise(function (resolve) {
         const readStore = self.$store.state.global.indexedDB
-          .transaction('mapList')
-          .objectStore('mapList')
+          .transaction("mapList")
+          .objectStore("mapList")
           .getAll();
-        readStore.onsuccess = function(e) {
+        readStore.onsuccess = function (e) {
           const r = e.target.result;
           if (r && r.length > 0) {
             for (let i = 0; i < r.length; i++) {
@@ -388,12 +396,12 @@ export default {
     },
     loadPolygons() {
       const self = this;
-      return new Promise(function(resolve) {
+      return new Promise(function (resolve) {
         const readStore = self.$store.state.global.indexedDB
-          .transaction('mapPolygons')
-          .objectStore('mapPolygons')
+          .transaction("mapPolygons")
+          .objectStore("mapPolygons")
           .getAll();
-        readStore.onsuccess = function(e) {
+        readStore.onsuccess = function (e) {
           const r = e.target.result;
           if (r && r.length > 0) {
             for (let i = 0; i < r.length; i++) {
@@ -409,26 +417,26 @@ export default {
       let minutes = parseInt((time - hour * 3600) / 60);
       if (minutes < 1) minutes = 1;
       return (
-        (hour ? hour + ' ' + this.$t('hour') : '') +
-        (minutes ? minutes + ' ' + this.$t('minutes') : '')
+        (hour ? hour + " " + this.$t("hour") : "") +
+        (minutes ? minutes + " " + this.$t("minutes") : "")
       );
     },
     parseDistance(d) {
       const kilometer = d / 1000;
       if (kilometer < 1) {
-        return d + ' ' + this.$t('meter');
+        return d + " " + this.$t("meter");
       }
-      return kilometer.toFixed(1) + ' ' + this.$t('kilometer');
+      return kilometer.toFixed(1) + " " + this.$t("kilometer");
     },
     route(item) {
-      this.$store.commit('updateCurrentRoute', item);
-      this.$router.replace('/route');
+      this.$store.commit("updateCurrentRoute", item);
+      this.$router.replace("/route");
     },
   },
 };
 </script>
 <style>
-@import url('https://api.tiles.mapbox.com/mapbox-gl-js/v1.10.1/mapbox-gl.css');
+@import url("https://api.tiles.mapbox.com/mapbox-gl-js/v1.10.1/mapbox-gl.css");
 </style>
 <style>
 .max-width {
