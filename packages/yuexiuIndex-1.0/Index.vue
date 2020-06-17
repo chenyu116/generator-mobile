@@ -1,106 +1,105 @@
 <template>
   <q-layout view="lHh Lpr lFf" class="bg-white">
-    <q-header
-      style="background: rgba(0, 0, 0, 0.7);"
-      :class="`${$store.state.global.config.theme.textColor} shadow-3`"
-    >
-      <q-toolbar>
-        <q-toolbar-title class="text-subtitle1">
-          <q-icon
-            name="location_on"
-            size="sm"
-            left=""
-          />{{print "{{$t($store.state.global.startPointInfo.name)}}"}}</q-toolbar-title
-        >
-        <q-space />
-        <i18n v-if="hasI18n" />
-      </q-toolbar>
-
-    </q-header>
     <q-page-container class="bg">
-      <div class="row featureRow">
-        <div
-          class="roundBorder"
-          :style="`width:100%;background: rgba(0, 0, 0, 0.4)`"
+      <q-page>
+        <q-header
+          style="background: rgba(0, 0, 0, 0.7);"
+          :class="`${$store.state.global.config.theme.textColor} shadow-3`"
         >
-          <div
-            class="roundBorder1"
-            style="width:100%;border-top: 2px solid #ccc;"
-          >
-            <div :style="`width: ${$store.state.global.windowSize.width}px`">
-              <q-tabs
-                dense
-                class="text-grey-1 transparent"
-                align="justify"
-                :breakpoint="0"
-                no-caps=""
-              >
-                <template v-for="(item, itemIndex) in splitFeatures[0]">
-                  <q-separator
-                    v-if="itemIndex > 0"
-                    :key="`separator-0-${itemIndex}`"
-                    vertical
-                    color="grey"
-                  />
+          <q-toolbar>
+            <q-toolbar-title class="text-subtitle1">
+              <q-icon
+                name="location_on"
+                size="sm"
+                left=""
+              />{{print "{{$t($store.state.global.startPointInfo.name)}}"}}</q-toolbar-title
+            >
+            <q-space />
+            <i18n v-if="hasI18n" />
+          </q-toolbar>
+        </q-header>
 
-                  <q-tab
-                    :key="`tab-0-${itemIndex}`"
-                    class="q-px-xs"
-                    :style="`width:${tabWidth}px;`"
-                    @click="featureClick(item)"
-                    ><q-img
-                      v-if="item.image"
-                      :key="`tab-0-image-${itemIndex}`"
-                      :src="item.image"
-                      style="width:60px;height:40px"
-                    />{{print "{{ $t(item.name) }}"}}</q-tab
-                  >
-                </template>
-              </q-tabs>
+        <div class="row featureRow">
+          <div
+            class="roundBorder"
+            :style="`width:100%;background: rgba(0, 0, 0, 0.4)`"
+          >
+            <div
+              class="roundBorder1"
+              style="width: 100%; border-top: 2px solid #ccc;"
+            >
+              <div :style="`width: ${$store.state.global.windowSize.width}px`">
+                <q-tabs
+                  dense
+                  class="text-grey-1 transparent"
+                  align="justify"
+                  :breakpoint="0"
+                  no-caps=""
+                >
+                  <template v-for="(item, itemIndex) in splitFeatures[0]">
+                    <q-separator
+                      v-if="itemIndex > 0"
+                      :key="`separator-0-${itemIndex}`"
+                      vertical
+                      color="grey"
+                    />
+
+                    <q-tab
+                      :key="`tab-0-${itemIndex}`"
+                      class="q-px-xs"
+                      :style="`width:${tabWidth}px;`"
+                      @click="featureClick(item)"
+                      ><q-img
+                        v-if="item.image"
+                        :key="`tab-0-image-${itemIndex}`"
+                        :src="item.image"
+                        style="width: 60px; height: 40px;"
+                      />{{print "{{ $t(item.name) }}"}}</q-tab
+                    >
+                  </template>
+                </q-tabs>
+              </div>
             </div>
           </div>
-        </div>
-        <div
-          v-if="typeof splitFeatures[1] !== 'undefined'"
-          class="transparentBlack"
-          :style="`width: ${$store.state.global.windowSize.width}px`"
-        >
-          <q-separator color="grey" />
-          <q-tabs
-            dense
-            class="text-grey-1 transparent"
-            align="justify"
-            :breakpoint="0"
-            no-caps=""
+          <div
+            v-if="typeof splitFeatures[1] !== 'undefined'"
+            class="transparentBlack"
+            :style="`width: ${$store.state.global.windowSize.width}px`"
           >
-            <template v-for="(item, itemIndex) in splitFeatures[1]">
-              <q-separator
-                v-if="itemIndex > 0"
-                :key="`separator-1-${itemIndex}`"
-                vertical
-                color="grey"
-              />
-
-              <q-tab
-                :key="`tab-0-${itemIndex}`"
-                class="q-px-xs"
-                :style="`width:${tabWidth}px;`"
-                @click="featureClick(item)"
-                ><q-img
-                  v-if="item.image"
-                  :key="`tab-1-image-${itemIndex}`"
-                  :src="item.image"
-                  style="width:60px;height:40px"
+            <q-separator color="grey" />
+            <q-tabs
+              dense
+              class="text-grey-1 transparent"
+              align="justify"
+              :breakpoint="0"
+              no-caps=""
+            >
+              <template v-for="(item, itemIndex) in splitFeatures[1]">
+                <q-separator
+                  v-if="itemIndex > 0"
+                  :key="`separator-1-${itemIndex}`"
+                  vertical
+                  color="grey"
                 />
-                {{print "{{ $t(item.name) }}"}}</q-tab
-              >
-            </template>
-          </q-tabs>
+
+                <q-tab
+                  :key="`tab-0-${itemIndex}`"
+                  class="q-px-xs"
+                  :style="`width:${tabWidth}px;`"
+                  @click="featureClick(item)"
+                  ><q-img
+                    v-if="item.image"
+                    :key="`tab-1-image-${itemIndex}`"
+                    :src="item.image"
+                    style="width: 60px; height: 40px;"
+                  />
+                  {{print "{{ $t(item.name) }}"}}</q-tab
+                >
+              </template>
+            </q-tabs>
+          </div>
         </div>
-      </div>
-      <q-page>
-        {{range $i,$e:=.Config.Components}}{{if eq $e.Key "blocks"}}{{range $ni,$ne:=$e.Values}}
-        <{{$ne.ComponentHash}} />{{end}}{{end}}{{end}}
+        {{range $i,$e:=.Config.Components}}{{if eq $e.Key "blocks"}}{{range $ni,$ne:=$e.Values}} <{{ $ne.ComponentHash }} />{{ end}}{{ end }}{{ end }}
       </q-page>
     </q-page-container>
   </q-layout>

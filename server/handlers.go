@@ -647,6 +647,7 @@ func build(c *gin.Context) {
 			c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
 			return
 		}
+		sendMessage(fmt.Sprintf("generating component \"%s\"", feature.ProjectFeaturesInstallName))
 		for cmpK, cmp := range projectConfig.Components {
 			for cmpvK, cmpv := range cmp.Values {
 				for _, f := range projectFeatures.Features {
@@ -663,11 +664,9 @@ func build(c *gin.Context) {
 				}
 				hashIndex := strings.LastIndex(cmpv.ProjectFeaturesInstallName, "-")
 				projectConfig.Components[cmpK].Values[cmpvK].ComponentHash = strings.Replace(cmpv.ProjectFeaturesInstallName[hashIndex:], "-", "C", -1)
-				fmt.Println("projectConfig.Components[cmpK].Values[cmpvK].ComponentHash", projectConfig.Components[cmpK].Values[cmpvK].ComponentHash)
-				sendMessage(fmt.Sprintf("generating component hash \"%s\" %s", cmpv.ProjectFeaturesInstallName, projectConfig.Components[cmpK].Values[cmpvK].ComponentHash))
 			}
 		}
-		sendMessage(fmt.Sprintf("generating component \"%s\"", feature.ProjectFeaturesInstallName))
+
 		if feature.FeatureOnboot {
 			installDir = fmt.Sprintf("%s/src/boot/%s", projectDir, feature.ProjectFeaturesInstallName)
 		} else {
@@ -694,126 +693,125 @@ func build(c *gin.Context) {
 		}
 		cmds = cmds[:0]
 
-		if feature.ProjectFeaturesType == "click" {
-			continue
-		}
+		if feature.ProjectFeaturesType != "click" {
 
-		packageName := fmt.Sprintf("%s-%s", feature.FeatureName, feature.FeatureVersionName)
-		packageDir := fmt.Sprintf("./packages/%s", packageName)
-		if _, err := os.Stat(packageDir); os.IsNotExist(err) {
-			c.AbortWithStatusJSON(http.StatusBadRequest, jsonError("package: \""+packageName+"\" not found"))
-			return
-		}
-
-		files, err := ioutil.ReadDir(packageDir)
-		if err != nil {
-			c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
-			return
-		}
-
-		for _, f := range files {
-			if strings.HasSuffix(f.Name(), ".tmpl") {
-				continue
-			}
-			cmds = append(cmds, exec.Command("cp", packageDir+"/"+f.Name(), installDir))
-		}
-		if len(cmds) > 0 {
-			_, _, err = utils.Pipeline(cmds...)
-			if err != nil && !strings.HasPrefix(err.Error(), "exit") {
-				c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+			packageName := fmt.Sprintf("%s-%s", feature.FeatureName, feature.FeatureVersionName)
+			packageDir := fmt.Sprintf("./packages/%s", packageName)
+			if _, err := os.Stat(packageDir); os.IsNotExist(err) {
+				c.AbortWithStatusJSON(http.StatusBadRequest, jsonError("package: \""+packageName+"\" not found"))
 				return
 			}
 
-			cmds = cmds[:0]
-		}
-
-		writeFiles := make(map[string]string)
-		dataValues := make(map[string]interface{})
-		for _, v := range projectConfig.Data.Values {
-			dataValues[v.Key] = v.Value
-		}
-
-		newParamsTemplateParse := paramsTemplateParse{
-			InstallDir: strings.Replace(installDir, projectDir+"/src/", "", 1),
-			Config:     projectConfig,
-			DataValues: dataValues,
-		}
-		//fmt.Printf("%+v\n\n", newParamsTemplateParse)
-		if projectConfig.Data.Template != "" {
-			t, err := template.ParseFiles(packageDir + "/" + projectConfig.Data.Template)
-			if err != nil {
-				c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
-				return
-			}
-			buf := new(bytes.Buffer)
-			err = t.Execute(buf, newParamsTemplateParse)
+			files, err := ioutil.ReadDir(packageDir)
 			if err != nil {
 				c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
 				return
 			}
 
-			targetString := strings.Replace(buf.String(), "&#34;", `"`, -1)
-			targetString = strings.Replace(targetString, "&#39;", `'`, -1)
-			targetString = strings.Replace(targetString, "&lt;", `<`, -1)
-			targetString = strings.Replace(targetString, `|"`, "", -1)
-			targetString = strings.Replace(targetString, `"|`, "", -1)
-			writeFiles[projectConfig.Data.Template] = targetString
-		}
+			for _, f := range files {
+				if strings.HasSuffix(f.Name(), ".tmpl") {
+					continue
+				}
+				cmds = append(cmds, exec.Command("cp", packageDir+"/"+f.Name(), installDir))
+			}
+			if len(cmds) > 0 {
+				_, _, err = utils.Pipeline(cmds...)
+				if err != nil && !strings.HasPrefix(err.Error(), "exit") {
+					c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+					return
+				}
 
-		for _, v := range projectConfig.Components {
-			if _, ok := writeFiles[v.Template]; !ok {
-				t, err := template.ParseFiles(packageDir + "/" + v.Template)
+				cmds = cmds[:0]
+			}
+
+			writeFiles := make(map[string]string)
+			dataValues := make(map[string]interface{})
+			for _, v := range projectConfig.Data.Values {
+				dataValues[v.Key] = v.Value
+			}
+
+			newParamsTemplateParse := paramsTemplateParse{
+				InstallDir: strings.Replace(installDir, projectDir+"/src/", "", 1),
+				Config:     projectConfig,
+				DataValues: dataValues,
+			}
+			//fmt.Printf("%+v\n\n", newParamsTemplateParse)
+			if projectConfig.Data.Template != "" {
+				t, err := template.ParseFiles(packageDir + "/" + projectConfig.Data.Template)
 				if err != nil {
 					c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
 					return
 				}
-				//fmt.Println("newParamsTemplateParse", newParamsTemplateParse)
-				buf.Reset()
+				buf := new(bytes.Buffer)
 				err = t.Execute(buf, newParamsTemplateParse)
 				if err != nil {
 					c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
 					return
 				}
+
 				targetString := strings.Replace(buf.String(), "&#34;", `"`, -1)
 				targetString = strings.Replace(targetString, "&#39;", `'`, -1)
-				writeFiles[v.Template] = targetString
+				targetString = strings.Replace(targetString, "&lt;", `<`, -1)
+				targetString = strings.Replace(targetString, `|"`, "", -1)
+				targetString = strings.Replace(targetString, `"|`, "", -1)
+				writeFiles[projectConfig.Data.Template] = targetString
 			}
-		}
-		if len(writeFiles) > 0 {
-			for file, s := range writeFiles {
-				err := ioutil.WriteFile(installDir+"/"+file, []byte(s), os.ModePerm)
-				if err != nil {
-					c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
-					return
+
+			for _, v := range projectConfig.Components {
+				if _, ok := writeFiles[v.Template]; !ok {
+					t, err := template.ParseFiles(packageDir + "/" + v.Template)
+					if err != nil {
+						c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+						return
+					}
+					//fmt.Println("newParamsTemplateParse", newParamsTemplateParse)
+					buf.Reset()
+					err = t.Execute(buf, newParamsTemplateParse)
+					if err != nil {
+						c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+						return
+					}
+					targetString := strings.Replace(buf.String(), "&#34;", `"`, -1)
+					targetString = strings.Replace(targetString, "&#39;", `'`, -1)
+					writeFiles[v.Template] = targetString
 				}
-				cmds = append(cmds, exec.Command("/home/roger/.yarn/bin/prettier-eslint", "--config", projectDir+"/package.json", "--write", installDir+"/"+file))
 			}
-		}
-
-		if feature.FeatureOnboot {
-			bootString = append(bootString, `'`+feature.GetProjectFeaturesInstallName()+`'`)
-		}
-
-		if feature.ProjectFeaturesType == "entrance" {
-			routes["/"] = paramsRoutesJsRoutesParam{
-				Path: "/",
-				Page: "components/" + feature.GetProjectFeaturesInstallName() + "/Index.vue",
+			if len(writeFiles) > 0 {
+				for file, s := range writeFiles {
+					err := ioutil.WriteFile(installDir+"/"+file, []byte(s), os.ModePerm)
+					if err != nil {
+						c.AbortWithStatusJSON(http.StatusBadRequest, jsonError(err.Error()))
+						return
+					}
+					cmds = append(cmds, exec.Command("/home/roger/.yarn/bin/prettier-eslint", "--config", projectDir+"/package.json", "--write", installDir+"/"+file))
+				}
 			}
-		} else if feature.ProjectFeaturesType == "page" {
-			for _, cf := range projectConfig.Data.Values {
-				if cf.Key == "routePath" {
-					path, ok := cf.Value.(string)
-					if !ok {
+
+			if feature.FeatureOnboot {
+				bootString = append(bootString, `'`+feature.GetProjectFeaturesInstallName()+`'`)
+			}
+
+			if feature.ProjectFeaturesType == "entrance" {
+				routes["/"] = paramsRoutesJsRoutesParam{
+					Path: "/",
+					Page: "components/" + feature.GetProjectFeaturesInstallName() + "/Index.vue",
+				}
+			} else if feature.ProjectFeaturesType == "page" {
+				for _, cf := range projectConfig.Data.Values {
+					if cf.Key == "routePath" {
+						path, ok := cf.Value.(string)
+						if !ok {
+							break
+						}
+						if _, ok = routes[path]; ok {
+							break
+						}
+						routes[path] = paramsRoutesJsRoutesParam{
+							Path: cf.Value.(string),
+							Page: "components/" + feature.GetProjectFeaturesInstallName() + "/Index.vue",
+						}
 						break
 					}
-					if _, ok = routes[path]; ok {
-						break
-					}
-					routes[path] = paramsRoutesJsRoutesParam{
-						Path: cf.Value.(string),
-						Page: "components/" + feature.GetProjectFeaturesInstallName() + "/Index.vue",
-					}
-					break
 				}
 			}
 		}
